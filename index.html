@@ -256,7 +256,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.2.1</div>
+  <div class="ver">V2.3</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -270,7 +270,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.2.1</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.3</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -859,6 +859,17 @@ const TRACKS={
       bs:{k:"sub",p:"0-------0-------"},pad:{k:"choir",v:0.8},pad2:{k:"strings",v:0.6},
       ld:{k:"choirl",m:"c6:8 bb5:4 ab5:4 | bb5:8 d6:8 | eb6:12 d6:4 | c6:16 | c6:8 eb6:4 c6:4 | d6:8 f6:8 | g6:8 d6:4 b5:4 | g5:16"}},
     C:{bars:4,ch:["Cm","Ab","Eb","G"],fill:1,dr:{k:"X.......X.......",h:"x.x.x.x.x.x.x.x."},arp:{k:"sq",p:"0123210301232103",oct:1,v:0.6},pad:{k:"warm",v:0.7}}}},
+  /* LE STUDIO DE STREAM — trap tranquille façon écran « le live va commencer », en la mineur */
+  stream:{gain:1,name:"Le live va commencer",bpm:140,order:["I","A","B","A","C","B"],loop:1,sec:{
+    I:{bars:4,ch:["Am","F","C","G"],pad:{k:"warm"},arp:{k:"glock",p:"0.2.4.2.0.2.4.2.",oct:1,v:0.55},dr:{h:"x...x...x...x..."},rise:3},
+    A:{bars:8,ch:["Am","F","C","G","Am","F","G","Em"],dr:{k:"X.........X.....",s:"........X.......",h:"x.x.x.x.x.xxx.x.",o:"..............x.",x:"X"+rep(".",127)},
+      bs:{k:"sub",p:"0-------0---0---"},pad:{k:"warm",v:0.8},arp:{k:"pluck",p:"0120012001200120",oct:1,v:0.4},
+      ld:{k:"saw",m:"e5:3 a5:3 c6:2 b5:4 a5:4 | f5:3 a5:3 c6:2 e6:8 | e6:3 d6:3 c6:2 g5:8 | b5:4 d6:4 b5:4 g5:4 | e5:3 a5:3 c6:2 b5:4 a5:4 | f5:3 a5:3 c6:2 f6:8 | g6:4 f6:2 e6:2 d6:4 b5:4 | e6:12 r:4"}},
+    B:{bars:8,ch:["F","G","Am","Am","F","G","Em","Em"],fill:1,dr:{k:"X.....X...X.....",s:"........X.......",h:"xxx.x.x.xxx.x.xx",x:"X"+rep(".",127)},
+      bs:{k:"sub",p:"0---0-----0-0---"},pad:{k:"strings",v:0.8},arp:{k:"sq",p:"0123012301230123",oct:1,v:0.35},
+      ld:{k:"square",m:"c6:2 c6:2 a5:2 c6:2 d6:4 c6:4 | d6:2 d6:2 b5:2 d6:2 e6:4 d6:4 | e6:2 e6:2 c6:2 e6:2 a6:8 | g6:4 e6:4 c6:4 a5:4 | c6:2 c6:2 a5:2 c6:2 f6:4 e6:4 | d6:2 d6:2 b5:2 d6:2 g6:4 f6:4 | e6:4 d6:4 b5:4 g5:4 | e6:16"},
+      ld2:{k:"choirl",oct:-12,m:"a5:16 | b5:16 | c6:16 | e6:16 | a5:16 | b5:16 | g5:16 | e5:16",v:0.5}},
+    C:{bars:4,ch:["Am","F","C","G"],fill:1,pad:{k:"strings",v:0.9},arp:{k:"epiano",p:"0.1.2.1.0.1.2.1.",oct:0,v:0.6},dr:{k:"X.......X.......",h:"x.x.x.x.x.x.x.x."}}}},
   /* LE VIDE-GRENIER — funk rétro 16 bits en sol majeur */
   brocante:{gain:1,name:"Bonne affaire !",bpm:124,sw:0.08,order:["I","A","B","A","C","B"],loop:1,sec:{
     I:{bars:2,ch:["G","C"],arp:{k:"mar",p:"0.1.2.1.0.1.2.1.",oct:1,v:0.8},dr:{h:"x.x.x.x.x.x.x.x."}},
@@ -878,7 +889,7 @@ const TRACKS={
   defeat:{gain:3.6,name:"Défaite",bpm:80,once:1,then:"results",order:["D"],sec:{
     D:{bars:3,ch:["Am","F","E"],pad:{k:"strings"},ld:{k:"piano",m:"e5:4 d5:4 c5:4 b4:4 | a4:4 c5:4 f5:4 e5:4 | g#4:12 r:4"}}}}
 };
-const JUKEBOX=["menu","select","prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","train","results","vs","victory","defeat"];
+const JUKEBOX=["menu","select","prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","stream","train","results","vs","victory","defeat"];
 /* --- lecteur : la musique est pré-calculée section par section (hors temps réel) puis simplement jouée --- */
 const RBUF={};
 const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
@@ -3058,7 +3069,180 @@ function dynRea2(g,f){
   if(al&&(f>>3)%2){g.save();g.globalCompositeOperation="lighter";glow(g,236,40,90,"rgba(255,60,60,A)",0.35);g.restore()}
 }
 
-const ARENA_MUS=["prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante"];
+const ARENA_MUS=["prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","stream"];
+/* ---------- 12. Le studio de stream (monde du Streamer Masqué) ---------- */
+function foamPanel(g,x,y,cols,rows,s){ // mousse acoustique en dièdres, un carreau sur deux tourné
+  for(let i=0;i<cols;i++)for(let k=0;k<rows;k++){const px=x+i*s,py=y+k*s,v=(i+k)%2;
+    g.fillStyle="#0f0d1c";g.fillRect(px,py,s,s);
+    for(let j=0;j<4;j++){const q=(s-4)/4;
+      if(v){g.fillStyle=lin(g,0,py+2+j*q,0,py+2+(j+1)*q,[[0,"#3a3458"],[0.45,"#231f3a"],[1,"#141126"]]);g.fillRect(px+2,py+2+j*q,s-4,q-1)}
+      else{g.fillStyle=lin(g,px+2+j*q,0,px+2+(j+1)*q,0,[[0,"#3a3458"],[0.45,"#231f3a"],[1,"#141126"]]);g.fillRect(px+2+j*q,py+2,q-1,s-4)}}}
+}
+function hexPath(g,x,y,r){g.beginPath();for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;g.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r)}g.closePath()}
+const STREAM_HEX=[[611,150],[641,133],[641,167],[671,150],[701,133],[701,167],[731,150]];
+function buildStream(g){
+  const r=srand(512);
+  // mur : peinture sombre, léger dégradé
+  g.fillStyle=lin(g,0,0,0,FL,[[0,"#100d1d"],[0.6,"#1a1630"],[1,"#221c3a"]]);g.fillRect(0,0,W,FL);
+  g.fillStyle="rgba(255,255,255,.02)";for(let x=0;x<W;x+=40)g.fillRect(x,0,1,FL);
+  g.fillStyle="#0b0916";g.fillRect(0,0,W,30);g.fillStyle="#1c1830";g.fillRect(0,30,W,4);
+  g.fillStyle="#151226";g.fillRect(0,FL-14,W,14);g.fillStyle="rgba(255,255,255,.05)";g.fillRect(0,FL-14,W,2);
+  // mousse acoustique à gauche
+  g.fillStyle="rgba(0,0,0,.35)";g.fillRect(28,100,196,196);foamPanel(g,24,96,4,4,48);
+  // plaque des 100 000 abonnés
+  g.fillStyle="#0c0a14";g.fillRect(240,104,58,74);g.fillStyle=lin(g,240,104,298,178,[[0,"#f4f6fa"],[0.45,"#a9b0bd"],[1,"#e6e9ef"]]);g.fillRect(244,108,50,66);
+  g.fillStyle="#2a2d36";g.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?6:13;g.lineTo(269+Math.cos(a)*rr,132+Math.sin(a)*rr)}g.closePath();g.fill();
+  g.fillStyle="#2a2d36";g.font=`800 9px ${FU}`;g.textAlign="center";g.textBaseline="middle";g.fillText("100 000",269,156);g.font=`700 6px ${FU}`;g.fillText("ABONNÉS",269,165);
+  // enseigne néon (éteinte : elle s'allume dans le dynamique)
+  g.fillStyle="#0c0a16";g.fillRect(216,194,68,62);g.strokeStyle="#2a2440";g.lineWidth=2;g.strokeRect(216,194,68,62);
+  // étagère au-dessus du grand écran : figurines (inventées), plante, trophée
+  g.fillStyle="#2a2236";g.fillRect(384,140,196,6);g.fillStyle="rgba(0,0,0,.35)";g.fillRect(386,146,192,4);g.fillStyle="#1d1828";g.fillRect(392,146,6,8);g.fillRect(566,146,6,8);
+  g.fillStyle="#c9ced6";g.fillRect(398,118,16,20);g.fillRect(401,110,10,9);g.fillStyle="#3dd6ff";g.fillRect(403,113,2,2);g.fillRect(407,113,2,2);g.fillStyle="#8d939c";g.fillRect(395,122,3,10);g.fillRect(414,122,3,10);
+  g.fillStyle="#f2a64a";g.beginPath();g.arc(442,131,9,0,7);g.fill();g.beginPath();g.moveTo(434,125);g.lineTo(436,114);g.lineTo(441,123);g.moveTo(450,125);g.lineTo(448,114);g.lineTo(443,123);g.fill();g.fillStyle="#1a1020";g.fillRect(438,129,2,2);g.fillRect(444,129,2,2);
+  g.fillStyle="#7a4a2e";g.fillRect(470,126,16,14);g.fillStyle="#3aa860";for(const [lx,ly,lr] of [[474,118,7],[482,114,8],[478,108,6],[486,120,5]]){g.beginPath();g.arc(lx,ly,lr,0,7);g.fill()}
+  g.fillStyle="#e8b93a";g.beginPath();g.moveTo(512,112);g.lineTo(532,112);g.quadraticCurveTo(532,128,522,130);g.quadraticCurveTo(512,128,512,112);g.fill();g.fillRect(519,130,6,6);g.fillRect(513,136,18,4);
+  g.fillStyle="#ff4fd8";g.fillRect(546,120,14,18);g.fillStyle="#ffd6f5";g.beginPath();g.arc(553,116,6,0,7);g.fill();g.fillStyle="#1a1020";g.fillRect(550,115,2,2);g.fillRect(555,115,2,2);
+  // panneaux lumineux hexagonaux (éteints)
+  for(const [x,y] of STREAM_HEX){hexPath(g,x,y,19);g.fillStyle="#1d1932";g.fill();g.strokeStyle="#0c0a16";g.lineWidth=3;g.stroke()}
+  // fond vert à droite, à moitié déroulé
+  g.fillStyle="#2a2a32";g.fillRect(752,40,196,14);g.fillStyle="rgba(255,255,255,.18)";g.fillRect(752,42,196,3);
+  g.fillStyle=lin(g,0,54,0,330,[[0,"#2fb84a"],[1,"#24963c"]]);g.fillRect(760,54,180,276);
+  for(let i=0;i<9;i++){const x=764+i*20+r()*8;g.fillStyle=`rgba(0,0,0,${0.05+r()*0.06})`;g.fillRect(x,54,6+r()*6,276);g.fillStyle="rgba(255,255,255,.05)";g.fillRect(x+8,54,3,276)}
+  g.fillStyle="#1d1d24";g.fillRect(758,326,184,8);
+  // lumière en softbox devant le fond vert
+  g.fillStyle="rgba(0,0,0,.35)";g.beginPath();g.ellipse(902,434,40,5,0,0,7);g.fill();
+  g.strokeStyle="#16161c";g.lineWidth=5;g.beginPath();g.moveTo(902,232);g.lineTo(902,404);g.moveTo(902,404);g.lineTo(874,432);g.moveTo(902,404);g.lineTo(930,432);g.moveTo(902,404);g.lineTo(902,432);g.stroke();
+  g.fillStyle="#141418";g.beginPath();g.moveTo(860,140);g.lineTo(944,140);g.lineTo(936,236);g.lineTo(868,236);g.closePath();g.fill();
+  g.fillStyle="#f5f2ff";g.fillRect(866,146,72,84);g.fillStyle="rgba(200,190,255,.35)";g.fillRect(866,188,72,1);g.fillRect(902,146,1,84);
+  // anneau lumineux sur pied, à gauche
+  g.fillStyle="rgba(0,0,0,.35)";g.beginPath();g.ellipse(150,434,42,5,0,0,7);g.fill();
+  g.strokeStyle="#16161c";g.lineWidth=5;g.beginPath();g.moveTo(150,238);g.lineTo(150,404);g.moveTo(150,404);g.lineTo(120,432);g.moveTo(150,404);g.lineTo(180,432);g.moveTo(150,404);g.lineTo(150,432);g.stroke();
+  g.fillStyle="#22222a";g.fillRect(146,226,8,16);
+  g.strokeStyle="#1c1c22";g.lineWidth=16;g.beginPath();g.arc(150,190,46,0,7);g.stroke();
+  g.strokeStyle="#f7f4ff";g.lineWidth=9;g.beginPath();g.arc(150,190,46,0,7);g.stroke();
+  g.fillStyle="#22222a";g.fillRect(140,176,20,30);g.fillStyle="#0e0e14";g.fillRect(142,178,16,26);
+  // le bureau : plateau, cadre métal
+  g.fillStyle="rgba(0,0,0,.4)";g.beginPath();g.ellipse(486,434,250,7,0,0,7);g.fill();
+  g.fillStyle="#17171d";for(const lx of [262,704]){g.fillRect(lx,326,10,106);g.fillRect(lx-14,426,38,6)}g.fillRect(262,396,452,6);
+  // tour du PC sous le bureau (vitre, les ventilos tournent dans le dynamique)
+  g.fillStyle="#101016";g.fillRect(606,338,78,92);g.fillStyle="#1c1c26";g.fillRect(612,344,66,80);g.strokeStyle="#2c2c38";g.lineWidth=2;g.strokeRect(612,344,66,80);
+  g.fillStyle="#26262e";g.fillRect(684,344,6,86);
+  g.fillStyle=lin(g,0,304,0,318,[[0,"#2b2733"],[1,"#1a1720"]]);g.beginPath();g.moveTo(262,304);g.lineTo(712,304);g.lineTo(722,318);g.lineTo(250,318);g.closePath();g.fill();
+  g.fillStyle="#121016";g.fillRect(250,318,472,10);g.fillStyle="rgba(255,255,255,.08)";g.fillRect(250,318,472,2);
+  // écrans : vertical à gauche (le chat), grand au centre (le live), petit à droite (le logiciel de stream)
+  const mon=(x,y,w,h)=>{g.fillStyle="rgba(0,0,0,.35)";g.fillRect(x+4,y+6,w,h);g.fillStyle="#0b0b10";g.fillRect(x-4,y-4,w+8,h+8);g.fillStyle="#06060a";g.fillRect(x,y,w,h)};
+  g.fillStyle="#1a1a20";g.fillRect(474,296,12,10);g.fillRect(452,302,56,4);g.fillRect(323,298,8,8);g.fillRect(640,294,8,12);
+  mon(292,186,70,112);mon(378,170,206,124);mon(598,194,94,98);
+  // webcam sur le grand écran
+  g.fillStyle="#1b1b22";g.fillRect(466,158,30,12);g.fillStyle="#0a0a10";g.beginPath();g.arc(481,164,5,0,7);g.fill();g.fillStyle="#3a5a9a";g.beginPath();g.arc(480,163,2,0,7);g.fill();
+  // tapis de souris, clavier, souris
+  g.fillStyle="#0f0e16";g.beginPath();g.moveTo(398,306);g.lineTo(586,306);g.lineTo(592,316);g.lineTo(392,316);g.closePath();g.fill();
+  g.fillStyle="#1d1c26";g.beginPath();g.moveTo(414,307);g.lineTo(536,307);g.lineTo(540,314);g.lineTo(410,314);g.closePath();g.fill();
+  g.fillStyle="#24232e";g.beginPath();g.ellipse(560,311,7,4,0,0,7);g.fill();
+  // micro sur bras articulé, avec son filtre anti-pop
+  g.strokeStyle="#15151a";g.lineWidth=4;g.lineCap="round";g.beginPath();g.moveTo(300,306);g.lineTo(304,262);g.lineTo(344,238);g.lineTo(368,236);g.stroke();
+  g.lineWidth=1.5;g.strokeStyle="#3a3a46";g.beginPath();g.moveTo(302,282);g.lineTo(322,250);g.stroke();
+  g.fillStyle="#24242c";g.beginPath();g.roundRect?g.roundRect(362,224,16,40,7):g.rect(362,224,16,40);g.fill();g.fillStyle="#3a3a46";for(let i=0;i<5;i++)g.fillRect(364,228+i*5,12,2);
+  g.strokeStyle="#15151a";g.lineWidth=2;g.beginPath();g.moveTo(378,244);g.lineTo(390,244);g.stroke();
+  g.fillStyle="rgba(30,30,40,.55)";g.beginPath();g.arc(396,244,15,0,7);g.fill();g.strokeStyle="#15151a";g.lineWidth=2.5;g.stroke();
+  g.strokeStyle="rgba(255,255,255,.08)";g.lineWidth=1;for(let i=-12;i<=12;i+=4){g.beginPath();g.moveTo(396+i,232);g.lineTo(396+i,256);g.stroke()}
+  // canettes de boisson énergisante (sans marque)
+  for(const [x,c] of [[262,"#1b1f1a"],[280,"#20141e"]]){g.fillStyle=c;g.fillRect(x,288,14,20);g.fillStyle="#b9bfc8";g.fillRect(x,286,14,3);
+    g.fillStyle=x<270?"#7dff4f":"#ff4fd8";g.beginPath();g.moveTo(x+8,291);g.lineTo(x+4,299);g.lineTo(x+7,299);g.lineTo(x+5,306);g.lineTo(x+11,296);g.lineTo(x+8,296);g.closePath();g.fill()}
+  // casque posé sur son support
+  g.fillStyle="#15151a";g.fillRect(694,262,4,44);g.fillRect(686,302,20,4);
+  g.strokeStyle="#15151a";g.lineWidth=5;g.beginPath();g.arc(696,262,12,Math.PI,0);g.stroke();g.fillStyle="#1f1f27";g.fillRect(680,260,9,18);g.fillRect(703,260,9,18);
+  // fauteuil gamer tourné vers le fond vert
+  g.fillStyle="rgba(0,0,0,.4)";g.beginPath();g.ellipse(764,434,48,6,0,0,7);g.fill();
+  g.fillStyle="#141418";g.fillRect(760,380,8,44);for(const [x2,y2] of [[728,428],[800,428],[748,432],[782,432]]){g.strokeStyle="#141418";g.lineWidth=4;g.beginPath();g.moveTo(764,420);g.lineTo(x2,y2);g.stroke();g.fillStyle="#0a0a0e";g.beginPath();g.arc(x2,y2,4,0,7);g.fill()}
+  g.fillStyle="#141418";g.beginPath();g.moveTo(718,372);g.lineTo(812,372);g.lineTo(806,392);g.lineTo(724,392);g.closePath();g.fill();
+  g.fillStyle="#18181e";g.beginPath();g.moveTo(732,382);g.lineTo(740,226);g.quadraticCurveTo(768,208,796,226);g.lineTo(800,382);g.closePath();g.fill();
+  g.fillStyle="#24d1e0";g.beginPath();g.moveTo(748,370);g.lineTo(752,244);g.lineTo(758,240);g.lineTo(756,372);g.closePath();g.fill();
+  g.beginPath();g.moveTo(780,372);g.lineTo(778,240);g.lineTo(784,244);g.lineTo(788,370);g.closePath();g.fill();
+  g.fillStyle="#26262e";g.beginPath();g.ellipse(768,240,18,9,0,0,7);g.fill();g.fillStyle="rgba(255,255,255,.08)";g.fillRect(744,250,4,110);
+  g.fillStyle="#141418";g.fillRect(722,330,10,8);g.fillRect(804,330,10,8);g.fillRect(720,330,6,44);g.fillRect(806,330,6,44);
+  // sol : parquet foncé en perspective, tapis gamer au centre
+  g.fillStyle="#1a1524";g.fillRect(0,FL,W,H-FL);
+  for(let c=-18;c<=18;c++){const x0=480+c*48*0.62,x1=480+c*48*1.18;g.strokeStyle=c%2?"rgba(0,0,0,.35)":"rgba(255,255,255,.04)";g.lineWidth=1.5;g.beginPath();g.moveTo(x0,FL);g.lineTo(x1,H);g.stroke()}
+  for(let row=1;row<9;row++){const y=FL+(H-FL)*Math.pow(row/9,1.35);g.fillStyle="rgba(0,0,0,.18)";for(let c=-18;c<18;c+=2){const k=(y-FL)/(H-FL),xa=480+(c+(row%2))*48*(0.62+0.56*k);g.fillRect(xa,y,1.5,(H-FL)/12)}}
+  g.fillStyle=lin(g,0,FL,0,H,[[0,"rgba(255,255,255,.04)"],[1,"rgba(0,0,0,.25)"]]);g.fillRect(0,FL,W,H-FL);
+  const rugT=FL+20,rugB=H-8,rx0=480-300*0.66,rx1=480+300*0.66,rx2=480+300*1.08,rx3=480-300*1.08;
+  g.fillStyle="#120e1f";g.beginPath();g.moveTo(rx0,rugT);g.lineTo(rx1,rugT);g.lineTo(rx2,rugB);g.lineTo(rx3,rugB);g.closePath();g.fill();
+  for(let i=1;i<4;i++){const m=i*14,k0=m/(rugB-rugT);g.strokeStyle=`rgba(${i===2?"255,79,216":"80,200,255"},.35)`;g.lineWidth=1.6;g.beginPath();
+    g.moveTo(rx0+m*0.9,rugT+m*0.35);g.lineTo(rx1-m*0.9,rugT+m*0.35);g.lineTo(rx2-m*1.4,rugB-m*0.35);g.lineTo(rx3+m*1.4,rugB-m*0.35);g.closePath();g.stroke()}
+  // câbles qui traînent
+  g.strokeStyle="#0a0a0e";g.lineWidth=3;g.beginPath();g.moveTo(645,432);g.bezierCurveTo(700,452,760,444,820,470);g.stroke();
+  g.beginPath();g.moveTo(300,432);g.bezierCurveTo(260,446,210,440,150,436);g.stroke();
+}
+let STREAM_CHAT=null,STREAM_LASTHYPE=0;
+const STREAM_MSG=["salut le chat","on veut du sang","il est chaud là","gg","c'est truqué","CLIP ÇA","mdrrr","1v1 moi","le masque wsh","qui gagne ?","allez allez","pause pipi","il spam le spécial","respect","dodo après"];
+const STREAM_HYPE=["OMG","AÏE","CLIP ÇA !!","KO KO KO","RIP","WOOOW","LE COUP","il est mort"];
+const STREAM_NK=["@kiki","@zozo","@nono","@lulu","@bibi","@toto","@mimi","@jojo"];
+function dynStream(g,f){
+  const hue=(f*1.2)%360;
+  // plafond : bande de LED qui change de couleur
+  g.save();g.globalCompositeOperation="lighter";
+  g.fillStyle=`hsl(${hue},95%,60%)`;g.fillRect(0,30,W,3);
+  g.fillStyle=lin(g,0,30,0,150,[[0,`hsla(${hue},95%,60%,.2)`],[1,`hsla(${hue},95%,60%,0)`]]);g.fillRect(0,30,W,120);
+  // panneaux hexagonaux : une vague de couleurs
+  STREAM_HEX.forEach(([x,y],i)=>{const h2=(hue+i*28)%360;glow(g,x,y,46,`hsla(${h2},95%,60%,A)`,0.35)});
+  g.restore();
+  STREAM_HEX.forEach(([x,y],i)=>{const h2=(hue+i*28)%360;hexPath(g,x,y,17);g.fillStyle=`hsl(${h2},90%,62%)`;g.fill();g.fillStyle="rgba(255,255,255,.35)";hexPath(g,x,y-3,9);g.fill()});
+  // enseigne néon « EN DIRECT » qui grésille
+  const on=!((f%300)>250&&(f%300)<262&&(f%4)<2);
+  g.save();g.textAlign="center";g.textBaseline="middle";
+  if(on){g.globalCompositeOperation="lighter";glow(g,250,225,80,"rgba(255,40,70,A)",0.45);g.globalCompositeOperation="source-over"}
+  g.fillStyle=on?"#ff3b56":"#4a1a24";g.beginPath();g.arc(250,207,5,0,7);g.fill();
+  for(const [t2,y2,fs2] of [["EN",224,15],["DIRECT",243,17]]){g.font=`${fs2}px ${FT}`;g.fillStyle=on?"#ff6a7e":"#4a1a24";g.fillText(t2,250,y2);if(on){g.globalAlpha=0.6;g.fillStyle="#ffe8ec";g.fillText(t2,250,y2);g.globalAlpha=1}}
+  g.restore();
+  // le grand écran : le combat retransmis en direct
+  const sx=378,sy=170,sw=206,sh=124;
+  g.fillStyle=lin(g,0,sy,0,sy+sh,[[0,"#241c44"],[1,"#3a2a5e"]]);g.fillRect(sx,sy,sw,sh);
+  g.fillStyle="#1a1430";g.fillRect(sx,sy+sh-26,sw,26);g.fillStyle="rgba(255,255,255,.08)";g.fillRect(sx,sy+sh-26,sw,1);
+  if(typeof G!=="undefined"&&G&&G.p1){
+    for(const F of [G.p1,G.p2]){const mx=sx+12+(F.x/W)*(sw-24),my=sy+sh-26+(F.y-GROUND)*0.24,c=F.col||{};
+      g.fillStyle=c.pants||"#333";g.fillRect(mx-3,my-12,6,12);g.fillStyle=c.top||"#555";g.fillRect(mx-5,my-26,10,15);
+      g.fillStyle=c.skin||"#e8c0a0";g.beginPath();g.arc(mx,my-31,5,0,7);g.fill();
+      if(F.state==="attack"||F.state==="super"){g.fillStyle="#ffcf33";g.fillRect(mx+(F.dir||1)*5,my-22,(F.dir||1)*8,3)}}
+    const hb=(F,x,al)=>{const w=70*Math.max(0,F.hp)/1000;g.fillStyle="rgba(0,0,0,.5)";g.fillRect(x,sy+8,70,5);g.fillStyle="#ffcf33";g.fillRect(al?x+70-w:x,sy+8,w,5)};
+    hb(G.p1,sx+6,false);hb(G.p2,sx+sw-76,true);
+  }
+  g.fillStyle="#d61f2c";g.fillRect(sx+6,sy+18,36,11);g.fillStyle="#fff";g.font=`800 8px ${FU}`;g.textAlign="left";g.textBaseline="middle";g.fillText("● LIVE",sx+9,sy+24);
+  const dmg=(typeof G!=="undefined"&&G&&G.p1)?(2000-G.p1.hp-G.p2.hp):0,vw=1234+Math.floor(dmg*2.7)+Math.floor(f/40);
+  g.fillStyle="rgba(0,0,0,.55)";g.fillRect(sx+sw-62,sy+18,56,11);g.fillStyle="#f2ede4";g.textAlign="right";g.fillText(vw+" vues",sx+sw-8,sy+24);
+  g.fillStyle="rgba(255,255,255,.05)";for(let y=sy;y<sy+sh;y+=3)g.fillRect(sx,y,sw,1);
+  // l'écran vertical : le chat
+  if(!STREAM_CHAT)STREAM_CHAT=[];
+  if(f%46===0)STREAM_CHAT.push([STREAM_NK[(Math.random()*STREAM_NK.length)|0],STREAM_MSG[(Math.random()*STREAM_MSG.length)|0],(Math.random()*4)|0]);
+  if(typeof shake!=="undefined"&&shake>9&&f-STREAM_LASTHYPE>14){STREAM_LASTHYPE=f;for(let i=0;i<2;i++)STREAM_CHAT.push([STREAM_NK[(Math.random()*STREAM_NK.length)|0],STREAM_HYPE[(Math.random()*STREAM_HYPE.length)|0],(Math.random()*4)|0])}
+  if(STREAM_CHAT.length>9)STREAM_CHAT.splice(0,STREAM_CHAT.length-9);
+  const cx=292,cy=186,cw=70,ch=112;g.fillStyle="#120f1e";g.fillRect(cx,cy,cw,ch);g.fillStyle="#2a2244";g.fillRect(cx,cy,cw,11);
+  g.fillStyle="#f2ede4";g.font=`800 7px ${FU}`;g.textAlign="left";g.fillText("CHAT EN DIRECT",cx+4,cy+6);
+  g.font=`700 7px ${FU}`;STREAM_CHAT.slice(-8).forEach((m,i,a)=>{const y=cy+ch-6-(a.length-1-i)*12;g.fillStyle=["#ff6ad5","#7cffb2","#ffcf33","#9df7ff"][m[2]];g.fillText(m[0],cx+3,y);
+    g.fillStyle="#e8e4f0";g.fillText(m[1].length>12?m[1].slice(0,12)+"…":m[1],cx+3,y+6)});
+  // petit écran : logiciel de stream (scènes et vumètres)
+  const ox=598,oy=194;g.fillStyle="#17151f";g.fillRect(ox,oy,94,98);g.fillStyle="#262236";g.fillRect(ox+4,oy+4,86,46);
+  g.fillStyle="#3a2a5e";g.fillRect(ox+6,oy+6,82,42);g.fillStyle="#d61f2c";g.fillRect(ox+8,oy+8,14,5);
+  for(let i=0;i<3;i++){g.fillStyle=i===0?"#3d7bff":"#2a2838";g.fillRect(ox+4,oy+54+i*9,40,7)}
+  for(let i=0;i<4;i++){const lv=0.35+0.55*Math.abs(Math.sin(f*0.11+i*1.3))*(MUS&&MUS.id?1:0.4);g.fillStyle="#242230";g.fillRect(ox+50+i*10,oy+54,6,40);
+    g.fillStyle=lv>0.8?"#ff4b3e":(lv>0.6?"#ffcf33":"#3ddc84");g.fillRect(ox+50+i*10,oy+94-40*lv,6,40*lv)}
+  // tour du PC : ventilateurs RGB
+  for(let i=0;i<3;i++){const fx0=645,fy=356+i*24,h2=(hue+i*60)%360;g.strokeStyle=`hsl(${h2},95%,62%)`;g.lineWidth=2.5;g.beginPath();g.arc(fx0,fy,9,0,7);g.stroke();
+    g.fillStyle="#0d0d12";g.beginPath();g.arc(fx0,fy,7,0,7);g.fill();g.strokeStyle="rgba(255,255,255,.35)";g.lineWidth=1.5;
+    for(let k=0;k<3;k++){const a=f*0.35+k*2.094;g.beginPath();g.moveTo(fx0,fy);g.lineTo(fx0+Math.cos(a)*6,fy+Math.sin(a)*6);g.stroke()}}
+  // clavier RGB (vague)
+  for(let i=0;i<14;i++){g.fillStyle=`hsl(${(hue+i*18)%360},90%,60%)`;g.globalAlpha=0.75;g.fillRect(418+i*8.6,308.5,6.5,2);g.fillRect(416+i*8.8,311.5,6.5,1.6)}g.globalAlpha=1;
+  // voyant rouge de la webcam
+  if((f>>4)%2){g.fillStyle="#ff2a3a";g.beginPath();g.arc(491,161,1.8,0,7);g.fill()}
+  // lumières de la pièce : anneau, softbox, écrans
+  g.save();g.globalCompositeOperation="lighter";
+  glow(g,150,190,120,"rgba(255,230,250,A)",0.35+0.03*Math.sin(f*0.05));
+  glow(g,902,188,130,"rgba(235,230,255,A)",0.32);
+  glow(g,480,232,190,"rgba(110,90,255,A)",0.18+0.04*Math.sin(f*0.07));
+  glow(g,645,380,46,`hsla(${hue},95%,60%,A)`,0.25);
+  g.fillStyle=lin(g,0,FL,0,FL+40,[[0,`hsla(${(hue+180)%360},95%,60%,.16)`],[1,`hsla(${(hue+180)%360},95%,60%,0)`]]);g.fillRect(0,FL,W,40);
+  g.restore();
+}
 const ARENAS=[
   {id:"prom",name:"La Promenade",build:g=>{buildPromenade(g);xProm(g)},dyn:(g,f)=>{drawBGDynamic(g,f);dProm(g,f)},grade:"rgba(255,140,90,.14)"},
   {id:"vn",name:"Vieux-Nice la nuit",build:g=>{buildVieuxNice(g);xVN(g)},dyn:(g,f)=>{dynVieuxNice(g,f);dVN(g,f)},fg:fgVN,grade:"rgba(70,80,190,.30)"},
@@ -3070,7 +3254,8 @@ const ARENAS=[
   {id:"juillet",name:"Le 14 Juillet",build:g=>{buildJuillet(g);xJuil(g)},dyn:(g,f)=>{dynJuillet(g,f);dJuil2(g,f)},grade:"rgba(255,225,170,.14)"},
   {id:"forum",name:"Le Forum 18-25",build:buildForum,dyn:(g,f)=>{dynForum(g,f);dForum2(g,f)},grade:"rgba(170,90,255,.2)"},
   {id:"piaule",name:"La piaule du gamer",build:buildPiaule,dyn:(g,f)=>{dynPiaule(g,f);dPiaule2(g,f)},grade:"rgba(120,90,255,.18)"},
-  {id:"shop",name:"La boutique rétro",build:g=>{buildShop(g);xShop(g)},dyn:(g,f)=>{dShop2(g,f);dynShop(g,f)},grade:"rgba(255,120,220,.14)"}
+  {id:"shop",name:"La boutique rétro",build:g=>{buildShop(g);xShop(g)},dyn:(g,f)=>{dShop2(g,f);dynShop(g,f)},grade:"rgba(255,120,220,.14)"},
+  {id:"stream",name:"Le studio de stream",build:buildStream,dyn:dynStream,grade:"rgba(150,80,255,.14)"}
 ];
 let VIG=null;
 function vignette(){if(!VIG){VIG=document.createElement("canvas");VIG.width=W;VIG.height=H;const g=VIG.getContext("2d");g.fillStyle=rad(g,W/2,H/2,H*0.45,H*0.95,[[0,"rgba(0,0,0,0)"],[1,"rgba(0,0,0,.45)"]]);g.fillRect(0,0,W,H)}return VIG}
@@ -4314,8 +4499,8 @@ function updateCam(){
 }
 /* lumière de contour : chaque arène éclaire les combattants depuis sa source de lumière */
 const RIM={prom:["#ffb070",0.75,-0.65,0.55],vn:["#a9b8ff",0.8,-0.6,0.45],rea:["#b4f7ff",0.1,-1,0.42],neige:["#eef8ff",-0.6,-0.8,0.5],creche:["#ffd9a0",-0.7,-0.7,0.42],
-  z51:["#7dffb8",0.25,-0.97,0.55],cathe:["#ffd08a",0,-1,0.5],juillet:["#fff0c8",0.8,-0.6,0.45],forum:["#ff7ae0",-0.8,-0.6,0.6],piaule:["#c49bff",-0.25,-0.97,0.5],shop:["#ff9fe0",0.15,-0.99,0.5]};
-const REFL={rea:0.2,cathe:0.24,shop:0.2,forum:0.28,creche:0.1,vn:0.12,piaule:0.08,juillet:0.06};
+  z51:["#7dffb8",0.25,-0.97,0.55],cathe:["#ffd08a",0,-1,0.5],juillet:["#fff0c8",0.8,-0.6,0.45],forum:["#ff7ae0",-0.8,-0.6,0.6],piaule:["#c49bff",-0.25,-0.97,0.5],shop:["#ff9fe0",0.15,-0.99,0.5],stream:["#ffd6fb",-0.7,-0.72,0.55]};
+const REFL={rea:0.2,cathe:0.24,shop:0.2,forum:0.28,creche:0.1,vn:0.12,piaule:0.08,juillet:0.06,stream:0.12};
 const RC=document.createElement("canvas"),rctx=RC.getContext("2d"),RC2=document.createElement("canvas"),rctx2=RC2.getContext("2d");
 // les corps sont dessinés une seule fois dans un calque ; la lumière de contour est déduite de ce calque (aucun tracé en plus)
 let LIGHT={x:0.55,y:-0.83};
@@ -4736,7 +4921,7 @@ img(CHLOE_FACE);resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="2.2",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="2.3",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"]];
 try{const q=new URLSearchParams(location.search).get("broker");if(q)NETB.splice(0,NETB.length,[q])}catch(e){}
