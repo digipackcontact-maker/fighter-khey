@@ -235,8 +235,8 @@ canvas#c{position:absolute;display:block}
     <div class="ar" id="arL" style="left:0;bottom:0;width:84px;height:72px"><svg viewBox="0 0 24 24"><path d="M16.5 4.5 L6.5 12 L16.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></div>
     <div class="ar" id="arR" style="left:132px;bottom:0;width:84px;height:72px"><i style="transform:scaleX(-1)"><svg viewBox="0 0 24 24"><path d="M16.5 4.5 L6.5 12 L16.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></i></div>
     <div class="ar" id="arU" style="left:70px;bottom:84px;width:76px;height:72px"><i style="transform:rotate(90deg)"><svg viewBox="0 0 24 24"><path d="M16.5 4.5 L6.5 12 L16.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></i></div>
-    <div class="dg" id="dgL" style="left:26px;bottom:100px"><svg viewBox="0 0 24 24"><path d="M5 5 L15 5 L5 15 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-    <div class="dg" id="dgR" style="left:168px;bottom:100px"><i style="transform:scaleX(-1)"><svg viewBox="0 0 24 24"><path d="M5 5 L15 5 L5 15 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></i></div>
+    <div class="dg" id="dgL" style="left:22px;bottom:118px"><svg viewBox="0 0 24 24"><path d="M5 5 L15 5 L5 15 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+    <div class="dg" id="dgR" style="left:172px;bottom:118px"><i style="transform:scaleX(-1)"><svg viewBox="0 0 24 24"><path d="M5 5 L15 5 L5 15 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></i></div>
     <div id="dpad"></div>
   </div>
   <div class="pad" id="rpad" style="right:6px;bottom:6px;width:270px;height:195px">
@@ -254,7 +254,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.1</div>
+  <div class="ver">V2.1.1</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -268,7 +268,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.1</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.1.1</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -1113,11 +1113,18 @@ function rootXY(e){return ROT?[innerHeight-e.clientY,e.clientX]:[e.clientX,e.cli
 function setDir(k,on){if(on){if(!keys[k])press(k)}else if(keys[k])release(k)}
 function padShow(){const L=keys.left,Rr=keys.right,U=keys.up,t=(id,v)=>{const e=document.getElementById(id);if(e)e.classList.toggle("down",!!v)};
   t("arL",L);t("arR",Rr);t("arU",U);t("dgL",U&&L);t("dgR",U&&Rr)}
+// zones de la croix : ◀ et ▶ montent jusqu'à mi-hauteur sur les côtés (un pouce un peu haut sur ◀ reste en garde) ;
+// le saut en diagonale ne se déclenche que nettement au-dessus. Une zone « colle » : il faut la quitter de 7 points pour en changer
+// (le pouce qui tremble sur une frontière ne relâche/represse plus ◀, ce qui faisait un dash arrière au lieu de la garde).
+let PADZ=null;
+function padZone(lx,yb){if(yb>108){if(lx<62)return "UL";if(lx>154)return "UR";return "U"}if(yb>78&&lx>=62&&lx<=154)return "U";return lx<108?"L":"R"}
 function padMove(e){if(e.pointerId!==padId)return;const [x,y]=rootXY(e),lx=(x-14)/padSc,yb=(RH-10-y)/padSc;
-  let l=0,r=0,u=0;if(yb<78){if(lx<108)l=1;else r=1}else{u=1;if(lx<64)l=1;else if(lx>152)r=1}
-  setDir("left",l);setDir("right",r);setDir("up",u);padShow()}
+  let z=padZone(lx,yb);
+  if(PADZ&&z!==PADZ){const H=7;if([padZone(lx+H,yb),padZone(lx-H,yb),padZone(lx,yb+H),padZone(lx,yb-H)].includes(PADZ))z=PADZ}
+  PADZ=z;
+  setDir("left",z==="L"||z==="UL");setDir("right",z==="R"||z==="UR");setDir("up",z[0]==="U");padShow()}
 {const DP=document.getElementById("dpad");
-  DP.addEventListener("pointerdown",e=>{e.preventDefault();audio();if(padId!==null)return;padId=e.pointerId;try{DP.setPointerCapture(e.pointerId)}catch(_){}padMove(e)});
+  DP.addEventListener("pointerdown",e=>{e.preventDefault();audio();if(padId!==null)return;padId=e.pointerId;PADZ=null;try{DP.setPointerCapture(e.pointerId)}catch(_){}padMove(e)});
   DP.addEventListener("pointermove",e=>{e.preventDefault();padMove(e)});
   const end=e=>{if(e.pointerId!==padId)return;padId=null;setDir("left",false);setDir("right",false);setDir("up",false);padShow()};
   DP.addEventListener("pointerup",end);DP.addEventListener("pointercancel",end);DP.addEventListener("lostpointercapture",end)}
