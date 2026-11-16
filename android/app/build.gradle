@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.fighterkhey.app'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.fighterkhey.app"
+        minSdk 24
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv("RUN_NUMBER") ?: "1")
+        versionName "1." + (System.getenv("RUN_NUMBER") ?: "1")
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
