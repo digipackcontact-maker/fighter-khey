@@ -143,7 +143,7 @@ canvas#c{position:absolute;display:block}
 .k.sup{color:rgba(242,237,228,.35);box-shadow:inset 0 0 0 2px rgba(242,237,228,.18)}
 .k.big{font-size:15px}
 .k.down{transform:scale(.92)}
-#stickZone{position:absolute;left:0;bottom:0;width:42%;height:80%;pointer-events:auto;touch-action:none}
+#stickZone{position:absolute;left:0;top:0;width:200px;height:200px;border-radius:50%;pointer-events:auto;touch-action:none}
 #stick{position:absolute;left:0;top:0;width:128px;height:128px;border-radius:50%;background:rgba(12,12,16,.22);box-shadow:inset 0 0 0 2px rgba(242,237,228,.3);pointer-events:none;transform-origin:0 0}
 #stick.on{background:rgba(12,12,16,.34);box-shadow:inset 0 0 0 2px rgba(242,237,228,.5)}
 #stick .sa{position:absolute;font-size:13px;color:rgba(242,237,228,.4);transform:translate(-50%,-50%)}
@@ -190,7 +190,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.0</div>
+  <div class="ver">V2.0.1</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -204,7 +204,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.0</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.0.1</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -215,7 +215,7 @@ canvas#c{position:absolute;display:block}
   <div class="orow" data-opt="voice"><div class="on-l">Voix de l'annonceur</div><div class="sw"></div></div>
   <div class="orow" data-opt="blood"><div class="on-l">Sang et blessures</div><div class="sw"></div></div>
   <div class="orow" data-cyc="ctrl"><div class="on-l">Déplacements</div><div class="sw"></div></div>
-  <div class="orow" data-cyc="btn"><div class="on-l">Boutons</div><div class="sw"></div></div>
+  <div class="orow" data-cyc="bsz"><div class="on-l">Boutons</div><div class="sw"></div></div>
   <div class="jrow"><div class="on-l">Juke-box</div><button class="ab" id="jL">◀</button><div id="jName"></div><button class="ab" id="jR">▶</button></div>
   </div>
   <div style="margin-top:14px"><button class="btn ghost" id="bOptBack">Retour</button></div>
@@ -342,7 +342,7 @@ function resize(){
   cv.width=Math.round(W*VS*DPR);cv.height=Math.round(H*VS*DPR);OC.width=cv.width;OC.height=cv.height;
   cv.style.width=W*VS+"px";cv.style.height=H*VS+"px";
   cv.style.left=(RW-W*VS)/2+"px";cv.style.top=(RH-H*VS)/2+"px";
-  const s=Math.max(0.8,Math.min(1.35,RH/380))*({S:0.86,M:1,L:1.16}[OPT.btn]||1);
+  const s=Math.max(0.8,Math.min(1.35,RH/380))*({S:0.86,M:1,L:1.16}[OPT.bsz]||0.86);
   for(const [id,o] of [["lpad","bottom left"],["rpad","bottom right"]]){const e=document.getElementById(id);e.style.transform=`scale(${s})`;e.style.transformOrigin=o}
   stSc=s;$("ctrl").classList.toggle("arrows",OPT.ctrl==="arrows");if(stId===null)stickRest();
   if(document.getElementById("sSelect").classList.contains("on"))sizeCanvas($("pv"));
@@ -359,7 +359,7 @@ function tryLandscape(){
 
 /* ================= Audio : bruitages ================= */
 let AC=null,MASTER=null,SFXG=null,MUSG=null;
-const OPT={music:true,sfx:true,voice:true,blood:true,ctrl:"stick",btn:"M"};
+const OPT={music:true,sfx:true,voice:true,blood:true,ctrl:"stick",bsz:"S"};
 try{Object.assign(OPT,JSON.parse(localStorage.getItem("bep_opt")||"{}"))}catch(e){}
 function applyOpt(){if(MUSG)MUSG.gain.value=OPT.music?0.22:0;if(SFXG)SFXG.gain.value=OPT.sfx?0.78:0;if(!OPT.voice)try{speechSynthesis.cancel()}catch(e){}}
 function audio(){
@@ -990,19 +990,19 @@ document.querySelectorAll(".k").forEach(el=>{
   el.addEventListener("pointerdown",down);el.addEventListener("pointerup",up);
   el.addEventListener("pointercancel",up);el.addEventListener("lostpointercapture",up);
 });
-// joystick flottant : il apparaît sous le pouce, on glisse pour avancer, reculer (garde) ou sauter
+// joystick fixe en bas à gauche : on glisse pour avancer, reculer (garde) ou sauter
 let stId=null,stX=0,stY=0,stSc=1;
 function rootXY(e){return ROT?[innerHeight-e.clientY,e.clientX]:[e.clientX,e.clientY]}
 function stickPlace(x,y){const st=document.getElementById("stick");stX=x;stY=y;st.style.transform=`translate(${x-64*stSc}px,${y-64*stSc}px) scale(${stSc})`}
-function stickRest(){if(!RH)return;stickPlace(34+64*stSc,RH-26-64*stSc);const kn=document.getElementById("knob");if(kn)kn.style.transform="";const st=document.getElementById("stick");if(st)st.classList.remove("on")}
+function stickRest(){if(!RH)return;stickPlace(34+64*stSc,RH-26-64*stSc);const z=document.getElementById("stickZone"),zr=100*stSc;
+  if(z){z.style.width=z.style.height=zr*2+"px";z.style.left=stX-zr+"px";z.style.top=stY-zr+"px"}const kn=document.getElementById("knob");if(kn)kn.style.transform="";const st=document.getElementById("stick");if(st)st.classList.remove("on")}
 function setDir(k,on){if(on){if(!keys[k])press(k)}else if(keys[k])release(k)}
 function stickMove(e){if(e.pointerId!==stId)return;const [x,y]=rootXY(e);let dx=x-stX,dy=y-stY;const R=46*stSc,d=Math.hypot(dx,dy);
-  if(d>R*1.7){const k=(d-R*1.7)/d;stickPlace(stX+dx*k,stY+dy*k);dx=x-stX;dy=y-stY}
   const d2=Math.hypot(dx,dy),c=d2>R?R/d2:1;document.getElementById("knob").style.transform=`translate(${dx*c/stSc}px,${dy*c/stSc}px)`;
   const dz=13*stSc;setDir("left",dx<-dz);setDir("right",dx>dz);setDir("up",dy<-24*stSc&&-dy>Math.abs(dx)*0.55)}
 {const SZ=document.getElementById("stickZone");
   SZ.addEventListener("pointerdown",e=>{e.preventDefault();audio();if(stId!==null)return;stId=e.pointerId;try{SZ.setPointerCapture(e.pointerId)}catch(_){}
-    const [x,y]=rootXY(e),m=62*stSc;stickPlace(Math.max(m,x),Math.min(RH-m,Math.max(m,y)));document.getElementById("stick").classList.add("on");stickMove(e)});
+    document.getElementById("stick").classList.add("on");stickMove(e)});
   SZ.addEventListener("pointermove",e=>{e.preventDefault();stickMove(e)});
   const end=e=>{if(e.pointerId!==stId)return;stId=null;setDir("left",false);setDir("right",false);setDir("up",false);stickRest()};
   SZ.addEventListener("pointerup",end);SZ.addEventListener("pointercancel",end);SZ.addEventListener("lostpointercapture",end)}
@@ -3462,6 +3462,7 @@ function drawHUD(){
     if(left)g.fillRect(mx-10,my,mw*m+10,mh);else g.fillRect(mx+mw*(1-m),my,mw*m+10,mh);
     if(m>=1){g.fillStyle="rgba(255,255,255,.7)";const sx=((G.frame*6)%(mw+80))-40;g.fillRect(mx+sx,my,24,mh)}g.restore();
     g.font=`800 12px ${FU}`;g.fillStyle=m>=1?"#ffcf33":"rgba(242,237,228,.6)";g.textAlign=left?"left":"right";
+    g.lineWidth=3;g.lineJoin="round";g.strokeStyle="rgba(12,12,16,.85)";g.strokeText(m>=1?"SUPER PRÊTE":"SUPER",left?mx+mw+10:mx-10,my+8);
     g.fillText(m>=1?"SUPER PRÊTE":"SUPER",left?mx+mw+10:mx-10,my+8);
     // compteur de combo
     const cs=G.comboShow[f.side];
@@ -4304,7 +4305,7 @@ document.querySelectorAll("#sMenu .mi").forEach(b=>{
     SFX.confirm();if(b.dataset.mode==="options"){refreshOpt();show("sOptions");return}
     mode=b.dataset.mode;openSelect(0)}});
 hotItem(document.querySelector("#sMenu .mi"));
-const CYC={ctrl:[["stick","JOYSTICK"],["arrows","FLÈCHES"]],btn:[["S","PETITS"],["M","NORMAUX"],["L","GRANDS"]]};
+const CYC={ctrl:[["stick","JOYSTICK"],["arrows","FLÈCHES"]],bsz:[["S","PETITS"],["M","NORMAUX"],["L","GRANDS"]]};
 function refreshOpt(){document.querySelectorAll(".orow[data-opt]").forEach(r=>{const on=OPT[r.dataset.opt];const sw=r.querySelector(".sw");sw.textContent=on?"OUI":"NON";sw.classList.toggle("off",!on)});
   document.querySelectorAll(".orow[data-cyc]").forEach(r=>{const c=CYC[r.dataset.cyc],v=c.find(x=>x[0]===OPT[r.dataset.cyc])||c[0];r.querySelector(".sw").textContent=v[1]})}
 document.querySelectorAll(".orow[data-cyc]").forEach(r=>r.onclick=()=>{audio();const c=CYC[r.dataset.cyc],i=c.findIndex(x=>x[0]===OPT[r.dataset.cyc]);OPT[r.dataset.cyc]=c[(i+1)%c.length][0];
