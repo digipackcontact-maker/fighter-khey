@@ -143,15 +143,14 @@ canvas#c{position:absolute;display:block}
 .k.sup{color:rgba(242,237,228,.35);box-shadow:inset 0 0 0 2px rgba(242,237,228,.18)}
 .k.big{font-size:15px}
 .k.down{transform:scale(.92)}
-#stickZone{position:absolute;left:0;top:0;width:200px;height:200px;border-radius:50%;pointer-events:auto;touch-action:none}
-#stick{position:absolute;left:0;top:0;width:128px;height:128px;border-radius:50%;background:rgba(12,12,16,.22);box-shadow:inset 0 0 0 2px rgba(242,237,228,.3);pointer-events:none;transform-origin:0 0}
-#stick.on{background:rgba(12,12,16,.34);box-shadow:inset 0 0 0 2px rgba(242,237,228,.5)}
-#stick .sa{position:absolute;font-size:13px;color:rgba(242,237,228,.4);transform:translate(-50%,-50%)}
-#stick .sl{left:16%;top:50%}#stick .sr{left:84%;top:50%}#stick .su{left:50%;top:16%}
-#knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(242,237,228,.24);box-shadow:inset 0 0 0 2px rgba(242,237,228,.6)}
-#stick.on #knob{background:rgba(255,59,31,.55);box-shadow:inset 0 0 0 2px var(--acc)}
-#ctrl.arrows #stickZone,#ctrl.arrows #stick{display:none}
-#ctrl:not(.arrows) #lpad{display:none}
+.ar{position:absolute;border-radius:18px;display:flex;align-items:center;justify-content:center;color:rgba(242,237,228,.9);background:linear-gradient(180deg,rgba(46,46,56,.45),rgba(12,12,16,.5));box-shadow:inset 0 0 0 2px rgba(242,237,228,.4),inset 0 2px 0 rgba(255,255,255,.12),0 3px 8px rgba(0,0,0,.25);pointer-events:none;transition:transform .05s,background .05s}
+.ar i,.dg i{display:flex}
+.ar svg{width:30px;height:30px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.55))}
+.ar.down{background:linear-gradient(180deg,rgba(255,90,60,.75),rgba(255,59,31,.6));box-shadow:inset 0 0 0 2px var(--acc),0 0 14px rgba(255,59,31,.45);color:#fff;transform:scale(.94)}
+.dg{position:absolute;width:22px;height:22px;color:rgba(242,237,228,.3);pointer-events:none}
+.dg svg{width:22px;height:22px}
+.dg.down{color:var(--acc)}
+#dpad{position:absolute;left:-14px;bottom:-10px;width:262px;height:196px;pointer-events:auto;touch-action:none}
 .k.thr{color:rgba(242,237,228,.85);box-shadow:inset 0 0 0 2px rgba(242,237,228,.38)}
 .k.thr.down{background:rgba(255,59,31,.55)}
 .k.sup.ready{color:var(--ink);background:var(--yel);box-shadow:0 0 18px rgba(255,207,51,.6);animation:pls .5s infinite alternate}
@@ -168,19 +167,20 @@ canvas#c{position:absolute;display:block}
 <canvas id="c"></canvas>
 
 <div id="ctrl">
-  <div id="stickZone"></div>
-  <div id="stick"><span class="sa sl">◀</span><span class="sa sr">▶</span><span class="sa su">▲</span><div id="knob"></div></div>
-  <div class="pad" id="lpad" style="left:14px;width:196px;height:150px">
-    <div class="k" data-k="left"  style="left:0;bottom:0;width:64px;height:64px">◀</div>
-    <div class="k" data-k="right" style="left:128px;bottom:0;width:64px;height:64px">▶</div>
-    <div class="k" data-k="up"    style="left:64px;bottom:64px;width:64px;height:64px">▲</div>
+  <div class="pad" id="lpad" style="left:14px;bottom:10px;width:216px;height:156px">
+    <div class="ar" id="arL" style="left:0;bottom:0;width:84px;height:72px"><svg viewBox="0 0 24 24"><path d="M16.5 4.5 L6.5 12 L16.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></div>
+    <div class="ar" id="arR" style="left:132px;bottom:0;width:84px;height:72px"><i style="transform:scaleX(-1)"><svg viewBox="0 0 24 24"><path d="M16.5 4.5 L6.5 12 L16.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></i></div>
+    <div class="ar" id="arU" style="left:70px;bottom:84px;width:76px;height:72px"><i style="transform:rotate(90deg)"><svg viewBox="0 0 24 24"><path d="M16.5 4.5 L6.5 12 L16.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></i></div>
+    <div class="dg" id="dgL" style="left:26px;bottom:100px"><svg viewBox="0 0 24 24"><path d="M5 5 L15 5 L5 15 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+    <div class="dg" id="dgR" style="left:168px;bottom:100px"><i style="transform:scaleX(-1)"><svg viewBox="0 0 24 24"><path d="M5 5 L15 5 L5 15 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></i></div>
+    <div id="dpad"></div>
   </div>
-  <div class="pad" id="rpad" style="right:10px;width:290px;height:240px">
-    <div class="k big" data-k="lp" style="right:120px;bottom:30px;width:80px;height:80px">Poing</div>
-    <div class="k big" data-k="hp" style="right:30px;bottom:60px;width:80px;height:80px">Pied</div>
-    <div class="k" data-k="sp" style="right:115px;bottom:125px;width:70px;height:70px;font-size:12px">Spécial</div>
-    <div class="k sup" id="supBtn" data-k="su" style="right:29px;bottom:167px;width:66px;height:66px;font-size:12px">Super</div>
-    <div class="k thr" data-k="th" style="right:221px;bottom:31px;width:58px;height:58px;font-size:11px">Saisir</div>
+  <div class="pad" id="rpad" style="right:6px;bottom:6px;width:270px;height:195px">
+    <div class="k big" data-k="lp" style="right:112px;bottom:8px;width:80px;height:80px">Poing</div>
+    <div class="k big" data-k="hp" style="right:18px;bottom:34px;width:80px;height:80px">Pied</div>
+    <div class="k" data-k="sp" style="right:104px;bottom:98px;width:70px;height:70px;font-size:12px">Spécial</div>
+    <div class="k sup" id="supBtn" data-k="su" style="right:16px;bottom:122px;width:66px;height:66px;font-size:12px">Super</div>
+    <div class="k thr" data-k="th" style="right:206px;bottom:8px;width:58px;height:58px;font-size:11px">Saisir</div>
   </div>
 </div>
 <button class="topb" id="pause" aria-label="Pause"><svg width="14" height="16" viewBox="0 0 14 16"><rect x="1" y="1" width="4" height="14" fill="currentColor"/><rect x="9" y="1" width="4" height="14" fill="currentColor"/></svg></button>
@@ -190,7 +190,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.0.1</div>
+  <div class="ver">V2.0.2</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -204,7 +204,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.0.1</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.0.2</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -214,7 +214,6 @@ canvas#c{position:absolute;display:block}
   <div class="orow" data-opt="sfx"><div class="on-l">Bruitages</div><div class="sw"></div></div>
   <div class="orow" data-opt="voice"><div class="on-l">Voix de l'annonceur</div><div class="sw"></div></div>
   <div class="orow" data-opt="blood"><div class="on-l">Sang et blessures</div><div class="sw"></div></div>
-  <div class="orow" data-cyc="ctrl"><div class="on-l">Déplacements</div><div class="sw"></div></div>
   <div class="orow" data-cyc="bsz"><div class="on-l">Boutons</div><div class="sw"></div></div>
   <div class="jrow"><div class="on-l">Juke-box</div><button class="ab" id="jL">◀</button><div id="jName"></div><button class="ab" id="jR">▶</button></div>
   </div>
@@ -344,7 +343,7 @@ function resize(){
   cv.style.left=(RW-W*VS)/2+"px";cv.style.top=(RH-H*VS)/2+"px";
   const s=Math.max(0.8,Math.min(1.35,RH/380))*({S:0.86,M:1,L:1.16}[OPT.bsz]||0.86);
   for(const [id,o] of [["lpad","bottom left"],["rpad","bottom right"]]){const e=document.getElementById(id);e.style.transform=`scale(${s})`;e.style.transformOrigin=o}
-  stSc=s;$("ctrl").classList.toggle("arrows",OPT.ctrl==="arrows");if(stId===null)stickRest();
+  padSc=s;
   if(document.getElementById("sSelect").classList.contains("on"))sizeCanvas($("pv"));
   sizeMBG();
 }
@@ -359,7 +358,7 @@ function tryLandscape(){
 
 /* ================= Audio : bruitages ================= */
 let AC=null,MASTER=null,SFXG=null,MUSG=null;
-const OPT={music:true,sfx:true,voice:true,blood:true,ctrl:"stick",bsz:"S"};
+const OPT={music:true,sfx:true,voice:true,blood:true,bsz:"S"};
 try{Object.assign(OPT,JSON.parse(localStorage.getItem("bep_opt")||"{}"))}catch(e){}
 function applyOpt(){if(MUSG)MUSG.gain.value=OPT.music?0.22:0;if(SFXG)SFXG.gain.value=OPT.sfx?0.78:0;if(!OPT.voice)try{speechSynthesis.cancel()}catch(e){}}
 function audio(){
@@ -990,25 +989,23 @@ document.querySelectorAll(".k").forEach(el=>{
   el.addEventListener("pointerdown",down);el.addEventListener("pointerup",up);
   el.addEventListener("pointercancel",up);el.addEventListener("lostpointercapture",up);
 });
-// joystick fixe en bas à gauche : on glisse pour avancer, reculer (garde) ou sauter
-let stId=null,stX=0,stY=0,stSc=1;
+// croix de flèches : une seule zone tactile, on peut glisser d'une flèche à l'autre ; en haut à gauche / à droite = saut en diagonale
+let padId=null,padSc=1;
 function rootXY(e){return ROT?[innerHeight-e.clientY,e.clientX]:[e.clientX,e.clientY]}
-function stickPlace(x,y){const st=document.getElementById("stick");stX=x;stY=y;st.style.transform=`translate(${x-64*stSc}px,${y-64*stSc}px) scale(${stSc})`}
-function stickRest(){if(!RH)return;stickPlace(34+64*stSc,RH-26-64*stSc);const z=document.getElementById("stickZone"),zr=100*stSc;
-  if(z){z.style.width=z.style.height=zr*2+"px";z.style.left=stX-zr+"px";z.style.top=stY-zr+"px"}const kn=document.getElementById("knob");if(kn)kn.style.transform="";const st=document.getElementById("stick");if(st)st.classList.remove("on")}
 function setDir(k,on){if(on){if(!keys[k])press(k)}else if(keys[k])release(k)}
-function stickMove(e){if(e.pointerId!==stId)return;const [x,y]=rootXY(e);let dx=x-stX,dy=y-stY;const R=46*stSc,d=Math.hypot(dx,dy);
-  const d2=Math.hypot(dx,dy),c=d2>R?R/d2:1;document.getElementById("knob").style.transform=`translate(${dx*c/stSc}px,${dy*c/stSc}px)`;
-  const dz=13*stSc;setDir("left",dx<-dz);setDir("right",dx>dz);setDir("up",dy<-24*stSc&&-dy>Math.abs(dx)*0.55)}
-{const SZ=document.getElementById("stickZone");
-  SZ.addEventListener("pointerdown",e=>{e.preventDefault();audio();if(stId!==null)return;stId=e.pointerId;try{SZ.setPointerCapture(e.pointerId)}catch(_){}
-    document.getElementById("stick").classList.add("on");stickMove(e)});
-  SZ.addEventListener("pointermove",e=>{e.preventDefault();stickMove(e)});
-  const end=e=>{if(e.pointerId!==stId)return;stId=null;setDir("left",false);setDir("right",false);setDir("up",false);stickRest()};
-  SZ.addEventListener("pointerup",end);SZ.addEventListener("pointercancel",end);SZ.addEventListener("lostpointercapture",end)}
+function padShow(){const L=keys.left,Rr=keys.right,U=keys.up,t=(id,v)=>{const e=document.getElementById(id);if(e)e.classList.toggle("down",!!v)};
+  t("arL",L);t("arR",Rr);t("arU",U);t("dgL",U&&L);t("dgR",U&&Rr)}
+function padMove(e){if(e.pointerId!==padId)return;const [x,y]=rootXY(e),lx=(x-14)/padSc,yb=(RH-10-y)/padSc;
+  let l=0,r=0,u=0;if(yb<78){if(lx<108)l=1;else r=1}else{u=1;if(lx<64)l=1;else if(lx>152)r=1}
+  setDir("left",l);setDir("right",r);setDir("up",u);padShow()}
+{const DP=document.getElementById("dpad");
+  DP.addEventListener("pointerdown",e=>{e.preventDefault();audio();if(padId!==null)return;padId=e.pointerId;try{DP.setPointerCapture(e.pointerId)}catch(_){}padMove(e)});
+  DP.addEventListener("pointermove",e=>{e.preventDefault();padMove(e)});
+  const end=e=>{if(e.pointerId!==padId)return;padId=null;setDir("left",false);setDir("right",false);setDir("up",false);padShow()};
+  DP.addEventListener("pointerup",end);DP.addEventListener("pointercancel",end);DP.addEventListener("lostpointercapture",end)}
 const KM={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",KeyA:"left",KeyQ:"left",KeyD:"right",KeyW:"up",KeyZ:"up",KeyJ:"lp",KeyK:"hp",KeyL:"sp",KeyI:"su",KeyU:"th",Space:"up"};
-addEventListener("keydown",e=>{const k=KM[e.code];if(k){e.preventDefault();audio();if(!e.repeat)press(k)}});
-addEventListener("keyup",e=>{const k=KM[e.code];if(k)release(k)});
+addEventListener("keydown",e=>{const k=KM[e.code];if(k){e.preventDefault();audio();if(!e.repeat)press(k);padShow()}});
+addEventListener("keyup",e=>{const k=KM[e.code];if(k){release(k);padShow()}});
 function humanInput(){return {left:keys.left,right:keys.right,up:keys.up,lp:pressed.lp>0,hp:pressed.hp>0,sp:pressed.sp>0,su:pressed.su>0,th:pressed.th>0,upP:pressed.up>0,dashL:dashTap.left>0,dashR:dashTap.right>0}}
 let CONSUME_OK=true;
 function consume(k){if(!CONSUME_OK)return;pressed[k]=0;if(k==="dash"){dashTap.left=dashTap.right=0}}
@@ -4305,7 +4302,7 @@ document.querySelectorAll("#sMenu .mi").forEach(b=>{
     SFX.confirm();if(b.dataset.mode==="options"){refreshOpt();show("sOptions");return}
     mode=b.dataset.mode;openSelect(0)}});
 hotItem(document.querySelector("#sMenu .mi"));
-const CYC={ctrl:[["stick","JOYSTICK"],["arrows","FLÈCHES"]],bsz:[["S","PETITS"],["M","NORMAUX"],["L","GRANDS"]]};
+const CYC={bsz:[["S","PETITS"],["M","NORMAUX"],["L","GRANDS"]]};
 function refreshOpt(){document.querySelectorAll(".orow[data-opt]").forEach(r=>{const on=OPT[r.dataset.opt];const sw=r.querySelector(".sw");sw.textContent=on?"OUI":"NON";sw.classList.toggle("off",!on)});
   document.querySelectorAll(".orow[data-cyc]").forEach(r=>{const c=CYC[r.dataset.cyc],v=c.find(x=>x[0]===OPT[r.dataset.cyc])||c[0];r.querySelector(".sw").textContent=v[1]})}
 document.querySelectorAll(".orow[data-cyc]").forEach(r=>r.onclick=()=>{audio();const c=CYC[r.dataset.cyc],i=c.findIndex(x=>x[0]===OPT[r.dataset.cyc]);OPT[r.dataset.cyc]=c[(i+1)%c.length][0];
@@ -4422,7 +4419,7 @@ $("bReselect").onclick=()=>{SFX.select();G=null;musicPlay("menu");openSelect(0)}
 $("bRestart").onclick=()=>{paused=false;SFX.confirm();newMatch(G.p1.d,G.p2.d,G.mode,G.diff,true,G.arena);show(null)};
 $("pause").onclick=()=>{paused=true;const d=G.p1.d;
   $("movelist").innerHTML=[["Poing","Poing, deux fois de suite pour un 1-2"],["Pied","Coup de pied"],["Saisir","Projection près de l'adversaire, passe à travers la garde · appuie dessus quand on te saisit pour te dégager"],
-   ["Dash","Joystick poussé deux fois vite (ou ◀◀ / ▶▶) · Poing pendant le dash avant = attaque en course"],["Garde","Maintenir la direction opposée à l'adversaire"],
+   ["Dash","◀◀ ou ▶▶ rapidement · Poing pendant le dash avant = attaque en course"],["Garde","Maintenir la direction opposée à l'adversaire"],
    ["Enchaînement","Poing → Poing → Pied → Spécial"],["Contre","Frapper l'adversaire pendant qu'il prépare son coup"],
    ["Spécial",d.special.name],["Super",d.sup.name+" (jauge pleine)"]].map(([a,b])=>`<div>${a}</div><div>${b}</div>`).join("");
   show("sPause");$("ctrl").classList.remove("on")};
