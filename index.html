@@ -256,7 +256,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.6</div>
+  <div class="ver">V2.7</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -270,7 +270,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.6</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.7</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -908,6 +908,16 @@ const TRACKS={
       ld:{k:"square",m:"c6:2 c6:2 a5:2 c6:2 d6:4 c6:4 | d6:2 d6:2 b5:2 d6:2 e6:4 d6:4 | e6:2 e6:2 c6:2 e6:2 a6:8 | g6:4 e6:4 c6:4 a5:4 | c6:2 c6:2 a5:2 c6:2 f6:4 e6:4 | d6:2 d6:2 b5:2 d6:2 g6:4 f6:4 | e6:4 d6:4 b5:4 g5:4 | e6:16"},
       ld2:{k:"choirl",oct:-12,m:"a5:16 | b5:16 | c6:16 | e6:16 | a5:16 | b5:16 | g5:16 | e5:16",v:0.5}},
     C:{bars:4,ch:["Am","F","C","G"],fill:1,pad:{k:"strings",v:0.9},arp:{k:"epiano",p:"0.1.2.1.0.1.2.1.",oct:0,v:0.6},dr:{k:"X.......X.......",h:"x.x.x.x.x.x.x.x."}}}},
+  /* L'HÔPITAL ABANDONNÉ — comptine de boîte à musique qui déraille, en ré mineur */
+  urbex:{gain:1.1,name:"Il est 3 h 33",bpm:88,order:["I","A","B","A","C","B"],loop:1,sec:{
+    I:{bars:4,ch:["Dm","Dm","Bb","A"],pad:{k:"warm",v:0.7},ld:{k:"box",m:"a5:2 d6:2 f6:2 e6:2 d6:4 a5:4 | a#5:2 a5:2 g5:2 f5:2 e5:8 | d5:2 f5:2 a#5:2 a5:2 g5:4 f5:4 | e5:4 c#5:4 a4:8"},rise:3},
+    A:{bars:8,ch:["Dm","Bb","Gm","A","Dm","Bb","Gm","A7"],dr:{k:"X..X............",s:"........X.......",h:"..x...x...x...x."},
+      bs:{k:"sub",p:"0-------0---0---"},pad:{k:"strings",v:0.7},arp:{k:"glock",p:"0...2...1...2...",oct:1,v:0.35},
+      ld:{k:"box",m:"a5:2 d6:2 f6:2 e6:2 d6:4 a5:4 | a#5:2 a5:2 g5:2 f5:2 d5:8 | g5:2 a#5:2 d6:2 c6:2 a#5:4 g5:4 | a5:4 c#6:4 e6:8 | f6:2 e6:2 d6:2 a5:2 f5:4 d5:4 | g5:2 f5:2 d5:2 a#4:2 d5:8 | a#5:2 a5:2 g5:2 f5:2 e5:4 d5:4 | c#5:12 r:4"}},
+    B:{bars:8,ch:["Gm","Dm","Bb","A","Gm","Dm","Eb","A"],fill:1,dr:{k:"X..X....X..X....",s:"....X.......X...",h:"x.x.x.x.x.x.x.x.",x:"X"+rep(".",127)},
+      bs:{k:"saw",p:"0-0-0-0-0-0-0-0-"},pad:{k:"organ",v:0.7},pad2:{k:"choir",v:0.7},arp:{k:"pluck",p:"0123210301232103",oct:1,v:0.4},
+      ld:{k:"choirl",m:"d6:8 a#5:8 | a5:8 f5:8 | f5:8 d6:8 | c#6:16 | d6:8 a#5:8 | a5:8 f5:4 d5:4 | g5:8 a#5:8 | a5:16"}},
+    C:{bars:4,ch:["Dm","Gm","Dm","A"],pad:{k:"warm",v:0.8},ld:{k:"box",m:"d6:8 a5:8 | a#5:8 g5:8 | f5:4 e5:4 d5:8 | c#5:16"}}}},
   /* LE VIDE-GRENIER — funk rétro 16 bits en sol majeur */
   brocante:{gain:1,name:"Bonne affaire !",bpm:124,sw:0.08,order:["I","A","B","A","C","B"],loop:1,sec:{
     I:{bars:2,ch:["G","C"],arp:{k:"mar",p:"0.1.2.1.0.1.2.1.",oct:1,v:0.8},dr:{h:"x.x.x.x.x.x.x.x."}},
@@ -927,7 +937,7 @@ const TRACKS={
   defeat:{gain:3.6,name:"Défaite",bpm:80,once:1,then:"results",order:["D"],sec:{
     D:{bars:3,ch:["Am","F","E"],pad:{k:"strings"},ld:{k:"piano",m:"e5:4 d5:4 c5:4 b4:4 | a4:4 c5:4 f5:4 e5:4 | g#4:12 r:4"}}}}
 };
-const JUKEBOX=["menu","select","prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","stream","train","results","vs","victory","defeat"];
+const JUKEBOX=["menu","select","prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","stream","urbex","train","results","vs","victory","defeat"];
 /* --- lecteur : la musique est pré-calculée section par section (hors temps réel) puis simplement jouée --- */
 const RBUF={};
 const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
@@ -3134,7 +3144,7 @@ function dynRea2(g,f){
   if(al&&(f>>3)%2){g.save();g.globalCompositeOperation="lighter";glow(g,236,40,90,"rgba(255,60,60,A)",0.35);g.restore()}
 }
 
-const ARENA_MUS=["prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","stream"];
+const ARENA_MUS=["prom","vn","rea","neige","creche","z51","cathe","juillet","forum","piaule","brocante","stream","urbex"];
 /* ---------- 12. Le studio de stream (monde du Streamer Masqué) ---------- */
 function foamPanel(g,x,y,cols,rows,s){ // mousse acoustique en dièdres, un carreau sur deux tourné
   for(let i=0;i<cols;i++)for(let k=0;k<rows;k++){const px=x+i*s,py=y+k*s,v=(i+k)%2;
@@ -3308,6 +3318,147 @@ function dynStream(g,f){
   g.fillStyle=lin(g,0,FL,0,FL+40,[[0,`hsla(${(hue+180)%360},95%,60%,.16)`],[1,`hsla(${(hue+180)%360},95%,60%,0)`]]);g.fillRect(0,FL,W,40);
   g.restore();
 }
+/* ---------- 13. L'hôpital abandonné (monde de Guss, chasseur de fantômes) ---------- */
+const UB_WIN=[[64,92,132,184],[318,92,132,184]]; // fenêtres cintrées : x, y, largeur, hauteur
+function ubArch(g,x,y,w,h){g.beginPath();g.moveTo(x,y+h);g.lineTo(x,y+w/2);g.arc(x+w/2,y+w/2,w/2,Math.PI,0);g.lineTo(x+w,y+h);g.closePath()}
+function ubWheelchair(g,x,y,s,rot){
+  g.save();g.translate(x,y);g.scale(s,s);g.rotate(rot||0);g.strokeStyle="#4a5559";g.lineCap="round";g.lineJoin="round";
+  g.lineWidth=4;g.beginPath();g.arc(0,-24,24,0,7);g.stroke();g.lineWidth=1.5;for(let i=0;i<8;i++){const a=i*Math.PI/4;g.beginPath();g.moveTo(0,-24);g.lineTo(Math.cos(a)*22,-24+Math.sin(a)*22);g.stroke()}
+  g.lineWidth=4;g.beginPath();g.arc(36,-7,7,0,7);g.stroke();
+  g.strokeStyle="#5e6a6e";g.lineWidth=4;g.beginPath();g.moveTo(-12,-80);g.lineTo(-6,-36);g.lineTo(30,-36);g.lineTo(36,-12);g.moveTo(-6,-36);g.lineTo(-2,-14);g.moveTo(30,-36);g.lineTo(44,-30);g.stroke();
+  g.fillStyle="#2a2f33";g.beginPath();g.moveTo(-6,-40);g.lineTo(30,-40);g.lineTo(31,-33);g.lineTo(-5,-33);g.closePath();g.fill();
+  g.beginPath();g.moveTo(-12,-82);g.lineTo(-5,-40);g.lineTo(-1,-40);g.lineTo(-7,-82);g.closePath();g.fill();
+  g.strokeStyle="#7b8a8f";g.lineWidth=2;g.beginPath();g.moveTo(-12,-82);g.lineTo(-20,-84);g.stroke();
+  g.restore();
+}
+function buildUrbex(g){
+  const r=srand(333);
+  // mur : vieille peinture vert d'hôpital, dans la nuit
+  g.fillStyle=lin(g,0,0,0,FL,[[0,"#0b1215"],[0.45,"#152328"],[1,"#1b2c31"]]);g.fillRect(0,0,W,FL);
+  // peinture qui s'écaille (plaques plus claires, bords sombres)
+  for(let i=0;i<46;i++){const x=r()*W,y=50+r()*230,w=8+r()*46,h=5+r()*26;g.fillStyle=`rgba(${120+r()*40|0},${150+r()*40|0},${140+r()*30|0},${0.05+r()*0.07})`;
+    g.beginPath();g.moveTo(x,y);for(let k=1;k<7;k++){const a=k/7*6.283;g.lineTo(x+Math.cos(a)*w*(0.6+r()*0.5),y+Math.sin(a)*h*(0.6+r()*0.5))}g.closePath();g.fill();
+    g.strokeStyle="rgba(0,0,0,.25)";g.lineWidth=1;g.stroke()}
+  // coulures d'humidité depuis le plafond
+  for(let i=0;i<14;i++){const x=r()*W,w=6+r()*22,h=60+r()*170;g.fillStyle=lin(g,0,36,0,36+h,[[0,"rgba(40,28,14,.42)"],[1,"rgba(40,28,14,0)"]]);g.fillRect(x,36,w,h)}
+  // plafond et corniche
+  g.fillStyle="#070b0d";g.fillRect(0,0,W,34);g.fillStyle="#22323a";g.fillRect(0,34,W,5);g.fillStyle="rgba(0,0,0,.4)";g.fillRect(0,39,W,4);
+  // lambris carrelé (carreaux qui manquent, joints sales)
+  const ty=292;g.fillStyle="#2a3f45";g.fillRect(0,ty,W,FL-ty);
+  for(let y=ty,row=0;y<FL;y+=20,row++)for(let x=-(row%2)*10;x<W;x+=20){const v=r();
+    if(v<0.07){g.fillStyle="#0c1214";g.fillRect(x+1,y+1,18,18);g.fillStyle="rgba(90,80,60,.35)";g.fillRect(x+3,y+12,6,5);continue}
+    g.fillStyle=v<0.5?"#2f474e":(v<0.85?"#33505a":"#3a5961");g.fillRect(x+1,y+1,18,18);
+    g.fillStyle="rgba(255,255,255,.05)";g.fillRect(x+1,y+1,18,2)}
+  g.fillStyle="rgba(10,14,16,.5)";for(let y=ty;y<FL;y+=20)g.fillRect(0,y,W,1.2);
+  g.fillStyle="#3e5c64";g.fillRect(0,ty-8,W,8);g.fillStyle="rgba(255,255,255,.08)";g.fillRect(0,ty-8,W,2);g.fillStyle="rgba(0,0,0,.4)";g.fillRect(0,ty,W,3);
+  g.fillStyle=lin(g,0,ty,0,FL,[[0,"rgba(0,0,0,0)"],[1,"rgba(0,0,0,.45)"]]);g.fillRect(0,ty,W,FL-ty);
+  // fissures
+  g.strokeStyle="rgba(5,8,9,.75)";g.lineWidth=1.6;
+  for(const [x0,y0,n] of [[250,60,7],[520,300,5],[905,70,8],[700,40,6],[150,300,4]]){g.beginPath();g.moveTo(x0,y0);let x=x0,y=y0;for(let k=0;k<n;k++){x+=r()*22-11;y+=10+r()*16;g.lineTo(x,y)}g.stroke()}
+  // fenêtres cintrées : ciel de nuit, lune dans la première, vitres cassées
+  UB_WIN.forEach(([x,y,w,h],wi)=>{
+    g.fillStyle="#05080a";ubArch(g,x-8,y-8,w+16,h+16);g.fill();
+    g.save();ubArch(g,x,y,w,h);g.clip();
+    g.fillStyle=lin(g,0,y,0,y+h,[[0,"#0d1b33"],[0.6,"#1d3150"],[1,"#2a3b52"]]);g.fillRect(x,y,w,h);
+    for(let i=0;i<14;i++){g.fillStyle=`rgba(255,255,255,${0.3+r()*0.6})`;g.fillRect(x+r()*w,y+r()*h*0.7,1.4,1.4)}
+    if(wi===0){glow(g,x+w*0.62,y+52,70,"rgba(220,235,255,A)",0.5);g.fillStyle="#e9f1ff";g.beginPath();g.arc(x+w*0.62,y+52,21,0,7);g.fill();
+      g.fillStyle="rgba(150,170,200,.4)";for(const [dx,dy,rr] of [[-6,-5,5],[7,4,4],[-2,8,3]]){g.beginPath();g.arc(x+w*0.62+dx,y+52+dy,rr,0,7);g.fill()}}
+    // arbres morts dehors
+    g.strokeStyle="#03060a";g.lineWidth=3;g.lineCap="round";
+    for(let i=0;i<2;i++){const bx=x+20+i*70+r()*20;g.beginPath();g.moveTo(bx,y+h);g.lineTo(bx+4,y+h-70);g.lineTo(bx-14,y+h-110);g.moveTo(bx+4,y+h-70);g.lineTo(bx+26,y+h-104);g.moveTo(bx+2,y+h-40);g.lineTo(bx-18,y+h-58);g.stroke()}
+    g.restore();
+    // croisillons et carreaux brisés
+    g.strokeStyle="#0a0f12";g.lineWidth=5;g.beginPath();g.moveTo(x+w/2,y);g.lineTo(x+w/2,y+h);g.moveTo(x,y+h*0.42);g.lineTo(x+w,y+h*0.42);g.moveTo(x,y+h*0.72);g.lineTo(x+w,y+h*0.72);g.stroke();
+    g.fillStyle="rgba(170,200,220,.12)";g.beginPath();g.moveTo(x+w/2,y+h*0.42);g.lineTo(x+w,y+h*0.42);g.lineTo(x+w,y+h*0.72);g.lineTo(x+w*0.7,y+h*0.6);g.closePath();g.fill();
+    g.fillStyle="#05080a";g.beginPath();const bx=x+(wi?18:w*0.55),by=y+h*0.48;g.moveTo(bx,by);g.lineTo(bx+20,by+6);g.lineTo(bx+8,by+18);g.lineTo(bx+26,by+30);g.lineTo(bx-4,by+26);g.closePath();g.fill();
+    g.fillStyle="#2a3a40";g.fillRect(x-14,y+h+6,w+28,9);g.fillStyle="rgba(255,255,255,.08)";g.fillRect(x-14,y+h+6,w+28,2);
+  });
+  // tags et inscriptions (bombe de peinture)
+  g.save();g.lineCap="round";g.lineJoin="round";
+  g.strokeStyle="rgba(70,200,255,.5)";g.lineWidth=5;g.beginPath();g.moveTo(560,352);g.bezierCurveTo(578,312,600,372,614,330);g.bezierCurveTo(626,302,644,366,662,334);g.quadraticCurveTo(676,312,690,350);g.stroke();
+  g.strokeStyle="rgba(255,210,60,.45)";g.lineWidth=4;g.beginPath();g.arc(724,336,15,0.3,5.9);g.moveTo(717,330);g.lineTo(731,343);g.stroke();
+  g.font=`38px ${FT}`;g.textAlign="center";g.textBaseline="middle";g.translate(620,174);g.rotate(-0.05);
+  g.fillStyle="rgba(160,14,20,.85)";g.fillText("ILS SONT LÀ",0,0);
+  for(let i=0;i<8;i++){const dx=-100+i*28+r()*8,dl=8+r()*16;g.fillRect(dx,9,2.4,dl);g.beginPath();g.arc(dx+1.2,10+dl,2.2,0,7);g.fill()}
+  g.restore();
+  // horloge arrêtée à 3 h 33
+  g.fillStyle="#0b1012";g.beginPath();g.arc(560,240,24,0,7);g.fill();g.fillStyle="#c9cfc6";g.beginPath();g.arc(560,240,20,0,7);g.fill();
+  g.strokeStyle="rgba(0,0,0,.6)";g.lineWidth=1.2;for(let i=0;i<12;i++){const a=i/12*6.283;g.beginPath();g.moveTo(560+Math.cos(a)*16,240+Math.sin(a)*16);g.lineTo(560+Math.cos(a)*19,240+Math.sin(a)*19);g.stroke()}
+  g.strokeStyle="#151a1c";g.lineWidth=2.6;g.lineCap="round";const ha=(3.55/12)*6.283-Math.PI/2,ma=(33/60)*6.283-Math.PI/2;
+  g.beginPath();g.moveTo(560,240);g.lineTo(560+Math.cos(ha)*10,240+Math.sin(ha)*10);g.moveTo(560,240);g.lineTo(560+Math.cos(ma)*16,240+Math.sin(ma)*16);g.stroke();
+  g.strokeStyle="rgba(0,0,0,.55)";g.lineWidth=1;g.beginPath();g.moveTo(548,228);g.lineTo(557,243);g.lineTo(552,254);g.stroke();
+  // double porte du bloc B (entrouverte sur le noir)
+  const dx0=764,dy0=150,dw=124,dh=FL-dy0;
+  g.fillStyle="#0a1013";g.fillRect(dx0-10,dy0-12,dw+20,dh+12);g.fillStyle="#020304";g.fillRect(dx0,dy0,dw,dh);
+  g.fillStyle=lin(g,dx0,0,dx0+dw*0.5,0,[[0,"#2c3c40"],[1,"#22302f"]]);g.fillRect(dx0,dy0,dw*0.5,dh);
+  g.fillStyle="#1e2a2c";g.beginPath();g.moveTo(dx0+dw*0.5,dy0);g.lineTo(dx0+dw*0.86,dy0+10);g.lineTo(dx0+dw*0.86,FL-4);g.lineTo(dx0+dw*0.5,FL);g.closePath();g.fill();
+  g.fillStyle="#05080a";g.beginPath();g.arc(dx0+dw*0.25,dy0+70,13,0,7);g.fill();g.strokeStyle="#5d6c70";g.lineWidth=3;g.stroke();
+  g.fillStyle="#465458";g.fillRect(dx0+dw*0.18,dy0+150,dw*0.26,8);
+  g.fillStyle="#d8d2b8";g.fillRect(dx0+7,dy0+18,48,18);g.fillStyle="#1d2224";g.font=`800 11px ${FU}`;g.textAlign="center";g.textBaseline="middle";g.fillText("BLOC B",dx0+31,dy0+28);
+  g.fillStyle="rgba(120,20,20,.6)";g.fillRect(dx0+30,dy0+14,3,26);
+  // lit d'hôpital rouillé contre le mur, pied à perfusion, fauteuil roulant
+  g.save();g.strokeStyle="#3d4a4e";g.lineWidth=5;g.lineCap="round";
+  g.beginPath();g.moveTo(610,FL+6);g.lineTo(610,FL-62);g.moveTo(610,FL-30);g.lineTo(748,FL-30);g.moveTo(748,FL+6);g.lineTo(748,FL-46);g.stroke();
+  g.fillStyle="#bfc4b4";g.beginPath();g.moveTo(612,FL-44);g.lineTo(746,FL-40);g.lineTo(744,FL-28);g.lineTo(614,FL-30);g.closePath();g.fill();
+  g.fillStyle="rgba(120,90,50,.35)";g.beginPath();g.ellipse(680,FL-36,26,5,0,0,7);g.fill();
+  g.fillStyle="#ced2c4";g.beginPath();g.ellipse(632,FL-48,18,7,-0.1,0,7);g.fill();
+  g.strokeStyle="#5a686c";g.lineWidth=2;for(let i=0;i<5;i++){g.beginPath();g.moveTo(614,FL-60+i*6);g.lineTo(612,FL-60+i*6);g.stroke()}
+  g.strokeStyle="#55636a";g.lineWidth=2.5;g.beginPath();g.moveTo(586,FL+4);g.lineTo(586,FL-120);g.moveTo(574,FL+4);g.lineTo(598,FL+4);g.moveTo(576,FL-120);g.lineTo(596,FL-120);g.stroke();
+  g.fillStyle="rgba(200,220,210,.35)";g.beginPath();if(g.roundRect)g.roundRect(580,FL-118,14,22,3);else g.rect(580,FL-118,14,22);g.fill();
+  g.strokeStyle="rgba(200,220,210,.3)";g.lineWidth=1.2;g.beginPath();g.moveTo(587,FL-96);g.quadraticCurveTo(600,FL-60,640,FL-48);g.stroke();
+  g.restore();
+  ubWheelchair(g,214,FL+10,0.9,0.05);
+  // sol : grand carrelage en damier, sale et cassé, en perspective
+  g.fillStyle="#141e21";g.fillRect(0,FL,W,H-FL);
+  for(let row=0;row<8;row++){const y0=FL+(H-FL)*Math.pow(row/8,1.4),y1=FL+(H-FL)*Math.pow((row+1)/8,1.4),k0=(y0-FL)/(H-FL),k1=(y1-FL)/(H-FL);
+    for(let c=-14;c<14;c++){if((c+row)%2)continue;const xa=480+c*56*(0.62+0.56*k0),xb=480+(c+1)*56*(0.62+0.56*k0),xc=480+(c+1)*56*(0.62+0.56*k1),xd=480+c*56*(0.62+0.56*k1);
+      g.fillStyle=r()<0.08?"#0b1113":"#26353a";g.beginPath();g.moveTo(xa,y0);g.lineTo(xb,y0);g.lineTo(xc,y1);g.lineTo(xd,y1);g.closePath();g.fill()}}
+  g.fillStyle=lin(g,0,FL,0,H,[[0,"rgba(0,0,0,.35)"],[0.5,"rgba(0,0,0,.05)"],[1,"rgba(0,0,0,.4)"]]);g.fillRect(0,FL,W,H-FL);
+  g.fillStyle="rgba(0,0,0,.45)";g.fillRect(0,FL,W,4);
+  // flaque qui reflète la lune, gravats, feuilles de dossiers médicaux
+  g.fillStyle="rgba(60,90,110,.35)";g.beginPath();g.ellipse(176,FL+70,92,13,0,0,7);g.fill();g.fillStyle="rgba(210,230,255,.18)";g.beginPath();g.ellipse(196,FL+68,40,4,0,0,7);g.fill();
+  for(let i=0;i<26;i++){const x=r()*W,y=FL+10+r()*(H-FL-16),s=2+r()*6;g.fillStyle=r()<0.5?"#38474b":"#1f2a2d";g.beginPath();g.moveTo(x,y);g.lineTo(x+s,y-s*0.5);g.lineTo(x+s*1.4,y+s*0.4);g.lineTo(x+s*0.3,y+s*0.6);g.closePath();g.fill()}
+  for(let i=0;i<9;i++){const x=40+r()*880,y=FL+18+r()*(H-FL-30);g.save();g.translate(x,y);g.rotate(r()*0.8-0.4);g.scale(1,0.45);g.fillStyle="rgba(214,214,200,.55)";g.fillRect(-11,-14,22,28);
+    g.fillStyle="rgba(60,60,60,.4)";for(let k=0;k<4;k++)g.fillRect(-7,-9+k*6,14,1.6);g.restore()}
+  // rayons de lune qui tombent des fenêtres sur le sol
+  g.save();g.globalCompositeOperation="lighter";
+  UB_WIN.forEach(([x,y,w,h],wi)=>{g.fillStyle=lin(g,x,y,x+220,H,[[0,`rgba(170,200,255,${wi?0.07:0.11})`],[1,"rgba(170,200,255,0)"]]);
+    g.beginPath();g.moveTo(x+6,y+30);g.lineTo(x+w-6,y+30);g.lineTo(x+w+250,H);g.lineTo(x+120,H);g.closePath();g.fill()});
+  g.restore();
+  // fil et abat-jour de la lampe qui pend du plafond
+  g.strokeStyle="#0c1114";g.lineWidth=2;g.beginPath();g.moveTo(480,39);g.lineTo(480,94);g.stroke();
+}
+function dynUrbex(g,f){
+  // nuages qui passent devant la lune
+  const [wx,wy,ww,wh]=UB_WIN[0];g.save();ubArch(g,wx,wy,ww,wh);g.clip();
+  for(let i=0;i<3;i++){const cx=wx-80+((f*0.25+i*90)%(ww+160)),cy=wy+40+i*18;g.fillStyle=`rgba(40,55,80,${0.55-i*0.1})`;
+    for(const [dx,dy,rr] of [[0,0,18],[16,-6,14],[30,2,16],[-14,4,12]]){g.beginPath();g.arc(cx+dx,cy+dy,rr,0,7);g.fill()}}
+  g.restore();
+  // un fantôme passe de temps en temps derrière la deuxième fenêtre, ou regarde par la porte
+  const cyc=f%900;
+  if(cyc<170){const [x,y,w,h]=UB_WIN[1];g.save();ubArch(g,x,y,w,h);g.clip();const k=cyc/170;
+    drawGhost(g,x-40+k*(w+80),y+h*0.5+Math.sin(cyc*0.12)*10,0.95,1,f,0.45*Math.sin(k*Math.PI));g.restore()}
+  else if(cyc>=450&&cyc<640){const k=(cyc-450)/190,a=Math.sin(Math.min(1,k*3)*Math.PI/2)*(k>0.8?(1-k)/0.2:1);
+    g.save();g.beginPath();g.rect(764,150,62,FL-150);g.clip();drawGhost(g,800-18*a,262,1.1,1,f,0.6*a);g.restore()}
+  // panneau SORTIE vert qui grésille
+  const so=!((f%240)>200&&(f>>2)%2);g.fillStyle=so?"#2cff7a":"#164a2a";g.fillRect(796,112,60,20);
+  g.fillStyle=so?"#04230f":"#0b1a10";g.font=`800 12px ${FU}`;g.textAlign="center";g.textBaseline="middle";g.fillText("SORTIE",826,123);
+  if(so){g.save();g.globalCompositeOperation="lighter";glow(g,826,122,70,"rgba(40,255,120,A)",0.35);g.restore()}
+  // la lampe qui grésille au plafond
+  const flick=(f%180)<6||((f%97)<3)||((f%61)===0),on=!flick;
+  g.fillStyle=on?"#d9dfc8":"#4a4f45";g.beginPath();g.moveTo(462,108);g.lineTo(498,108);g.lineTo(490,94);g.lineTo(470,94);g.closePath();g.fill();
+  g.fillStyle="#1c2326";g.beginPath();g.moveTo(458,110);g.lineTo(502,110);g.lineTo(492,92);g.lineTo(468,92);g.closePath();g.globalAlpha=0.6;g.fill();g.globalAlpha=1;
+  if(on){g.save();g.globalCompositeOperation="lighter";glow(g,480,112,60,"rgba(255,245,210,A)",0.5);
+    g.fillStyle=lin(g,0,110,0,FL+40,[[0,"rgba(255,240,200,.16)"],[1,"rgba(255,240,200,0)"]]);g.beginPath();g.moveTo(462,110);g.lineTo(498,110);g.lineTo(640,FL+40);g.lineTo(320,FL+40);g.closePath();g.fill();g.restore()}
+  // poussière dans les rayons de lune
+  g.save();g.globalCompositeOperation="lighter";
+  for(let i=0;i<36;i++){const s=i*97.31,x=60+((s*13+f*(0.15+(i%5)*0.05))%420)+((i*37)%120),y=130+((s*7+f*(0.1+(i%3)*0.06))%300);
+    g.fillStyle=`rgba(210,225,255,${0.18+0.18*Math.sin(f*0.05+i)})`;g.fillRect(x,y,1.8,1.8)}
+  g.restore();
+  // brume au ras du sol
+  g.save();for(let i=0;i<7;i++){const x=((i*170+f*0.35*(i%2?1:-1))%(W+300)+W+300)%(W+300)-150,y=FL+10+(i%3)*14;
+    g.fillStyle=rad(g,x,y,10,150,[[0,"rgba(170,195,210,.10)"],[1,"rgba(170,195,210,0)"]]);g.fillRect(x-150,y-40,300,80)}g.restore();
+}
 const ARENAS=[
   {id:"prom",name:"La Promenade",build:g=>{buildPromenade(g);xProm(g)},dyn:(g,f)=>{drawBGDynamic(g,f);dProm(g,f)},grade:"rgba(255,140,90,.14)"},
   {id:"vn",name:"Vieux-Nice la nuit",build:g=>{buildVieuxNice(g);xVN(g)},dyn:(g,f)=>{dynVieuxNice(g,f);dVN(g,f)},fg:fgVN,grade:"rgba(70,80,190,.30)"},
@@ -3320,7 +3471,8 @@ const ARENAS=[
   {id:"forum",name:"Le Forum 18-25",build:buildForum,dyn:(g,f)=>{dynForum(g,f);dForum2(g,f)},grade:"rgba(170,90,255,.2)"},
   {id:"piaule",name:"La piaule du gamer",build:buildPiaule,dyn:(g,f)=>{dynPiaule(g,f);dPiaule2(g,f)},grade:"rgba(120,90,255,.18)"},
   {id:"shop",name:"La boutique rétro",build:g=>{buildShop(g);xShop(g)},dyn:(g,f)=>{dShop2(g,f);dynShop(g,f)},grade:"rgba(255,120,220,.14)"},
-  {id:"stream",name:"Le studio de stream",build:buildStream,dyn:dynStream,grade:"rgba(150,80,255,.14)"}
+  {id:"stream",name:"Le studio de stream",build:buildStream,dyn:dynStream,grade:"rgba(150,80,255,.14)"},
+  {id:"urbex",name:"L'hôpital abandonné",build:buildUrbex,dyn:dynUrbex,grade:"rgba(90,150,190,.2)"}
 ];
 let VIG=null;
 function vignette(){if(!VIG){VIG=document.createElement("canvas");VIG.width=W;VIG.height=H;const g=VIG.getContext("2d");g.fillStyle=rad(g,W/2,H/2,H*0.45,H*0.95,[[0,"rgba(0,0,0,0)"],[1,"rgba(0,0,0,.45)"]]);g.fillRect(0,0,W,H)}return VIG}
@@ -4718,8 +4870,8 @@ function updateCam(){
 }
 /* lumière de contour : chaque arène éclaire les combattants depuis sa source de lumière */
 const RIM={prom:["#ffb070",0.75,-0.65,0.55],vn:["#a9b8ff",0.8,-0.6,0.45],rea:["#b4f7ff",0.1,-1,0.42],neige:["#eef8ff",-0.6,-0.8,0.5],creche:["#ffd9a0",-0.7,-0.7,0.42],
-  z51:["#7dffb8",0.25,-0.97,0.55],cathe:["#ffd08a",0,-1,0.5],juillet:["#fff0c8",0.8,-0.6,0.45],forum:["#ff7ae0",-0.8,-0.6,0.6],piaule:["#c49bff",-0.25,-0.97,0.5],shop:["#ff9fe0",0.15,-0.99,0.5],stream:["#ffd6fb",-0.7,-0.72,0.55]};
-const REFL={rea:0.2,cathe:0.24,shop:0.2,forum:0.28,creche:0.1,vn:0.12,piaule:0.08,juillet:0.06,stream:0.12};
+  z51:["#7dffb8",0.25,-0.97,0.55],cathe:["#ffd08a",0,-1,0.5],juillet:["#fff0c8",0.8,-0.6,0.45],forum:["#ff7ae0",-0.8,-0.6,0.6],piaule:["#c49bff",-0.25,-0.97,0.5],shop:["#ff9fe0",0.15,-0.99,0.5],stream:["#ffd6fb",-0.7,-0.72,0.55],urbex:["#cfe2ff",-0.75,-0.66,0.5]};
+const REFL={rea:0.2,cathe:0.24,shop:0.2,forum:0.28,creche:0.1,vn:0.12,piaule:0.08,juillet:0.06,stream:0.12,urbex:0.12};
 const RC=document.createElement("canvas"),rctx=RC.getContext("2d"),RC2=document.createElement("canvas"),rctx2=RC2.getContext("2d");
 // les corps sont dessinés une seule fois dans un calque ; la lumière de contour est déduite de ce calque (aucun tracé en plus)
 let LIGHT={x:0.55,y:-0.83};
@@ -5141,7 +5293,7 @@ img(CHLOE_FACE);resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="2.6",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="2.7",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"]];
 try{const q=new URLSearchParams(location.search).get("broker");if(q)NETB.splice(0,NETB.length,[q])}catch(e){}
