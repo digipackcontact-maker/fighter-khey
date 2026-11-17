@@ -256,7 +256,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.9.1</div>
+  <div class="ver">V3.0</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -270,7 +270,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.9.1</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V3.0</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -5383,10 +5383,11 @@ img(CHLOE_FACE);resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="2.9.1",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="3.0",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
-const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"]];
-try{const q=new URLSearchParams(location.search).get("broker");if(q)NETB.splice(0,NETB.length,[q])}catch(e){}
+// plusieurs serveurs publics en même temps : chaque message part sur tous ceux qui répondent (si un réseau en bloque un, les autres prennent le relais)
+const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"],["wss://public.cloud.shiftr.io",{u:"public",p:"public"}]];
+try{const q=new URLSearchParams(location.search).get("broker");if(q)NETB.splice(0,NETB.length,...q.split(",").map(u=>[u]))}catch(e){}
 const NET_ALPHA="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",NET_TOPIC="fighterkhey/v1/",NET_MAX={vs:2,koth:8};
 const TXE=new TextEncoder(),TXD=new TextDecoder();
 function mqLen(n){const a=[];do{let b=n%128;n=Math.floor(n/128);if(n>0)b|=128;a.push(b)}while(n>0);return a}
@@ -5399,7 +5400,7 @@ class MQ{
     const to=setTimeout(()=>fail("délai"),timeout||6000);
     let ws;try{ws=new WebSocket(this.url,"mqtt")}catch(e){fail(e);return}
     this.ws=ws;ws.binaryType="arraybuffer";
-    ws.onopen=()=>{const cid="fk"+Math.random().toString(36).slice(2,12);this.send(mqPkt(0x10,[...mqStr("MQTT"),4,2,0,30,...mqStr(cid)]))};
+    ws.onopen=()=>{const cid="fk"+Math.random().toString(36).slice(2,12),au=this.auth;this.send(mqPkt(0x10,au?[...mqStr("MQTT"),4,0xC2,0,30,...mqStr(cid),...mqStr(au.u),...mqStr(au.p)]:[...mqStr("MQTT"),4,2,0,30,...mqStr(cid)]))};
     this.onack=rc=>{if(done)return;if(rc===0){done=true;clearTimeout(to);this.ok=true;this.ping=setInterval(()=>this.send(new Uint8Array([0xC0,0])),15000);res(this)}else fail("refus "+rc)};
     ws.onmessage=e=>this.feed(new Uint8Array(e.data));
     ws.onerror=()=>fail("erreur");
@@ -5426,9 +5427,24 @@ class MQ{
   close(){const w=this.ws;this.ok=false;this.onclose=null;clearInterval(this.ping);try{this.send(new Uint8Array([0xE0,0]));w&&w.close()}catch(e){}}
 }
 
+// regroupe plusieurs connexions : même façon de s'en servir qu'une seule
+class MMQ{
+  constructor(){this.l=[];this.onmsg=null;this.onclose=null;this.topic=null}
+  get ok(){return this.l.some(m=>m.ok)}
+  add(m){this.l.push(m);m.onmsg=(t,s)=>{if(this.onmsg)this.onmsg(t,s)};m.onclose=()=>{if(!this.ok&&this.onclose)this.onclose()};if(this.topic)m.sub(this.topic)}
+  sub(t){this.topic=t;for(const m of this.l)if(m.ok)m.sub(t)}
+  pub(t,s){for(const m of this.l)if(m.ok)m.pub(t,s)}
+  close(){this.closed=true;const l=this.l;this.l=[];this.onclose=null;for(const m of l)m.close()}
+}
+// se connecte à tous les serveurs en même temps ; rend la main dès le premier qui répond (+ un petit délai pour les autres), les retardataires s'ajoutent après
+function netConnectAll(){return new Promise(res=>{const M=new MMQ();let left=NETB.length,done=false,grace=null;
+  const fin=()=>{if(done)return;done=true;clearTimeout(grace);res(M.l.length?M:null)};
+  NETB.forEach((b,i)=>{const mq=new MQ(b[0]);mq.auth=b[1]||null;mq.connect(6500).then(()=>{if(M.closed){mq.close();return}M.add(mq);if(!grace)grace=setTimeout(fin,1200)}).catch(()=>{}).finally(()=>{if(--left===0)fin()})});
+  setTimeout(fin,7000)})}
+
 /* ---------- état réseau ---------- */
 const NET={mq:null,code:null,topic:null,me:Math.random().toString(36).slice(2,8),name:"",host:false,mode:"vs",lob:null,ch:0,ready:false,
-  rtt:80,joined:false,lastL:0,tick:null,beat:0,full:false,waitL:null,splashT:null,lastLob:null,bye:false};
+  rtt:80,seq:0,seen:new Set(),seenQ:[],joined:false,lastL:0,tick:null,beat:0,full:false,waitL:null,splashT:null,lastLob:null,bye:false};
 try{NET.name=localStorage.getItem("fk_name")||"";const c=+localStorage.getItem("fk_ch");if(c>=0&&ROSTER[c])NET.ch=c}catch(e){}
 let LS=null,RS=1,NLATCH=0;
 function nrand(){RS=(Math.imul(RS,1664525)+1013904223)>>>0;return RS/4294967296}
@@ -5443,7 +5459,7 @@ function ibApply(ib,w,fr){
   for(const k in ib.dashTap)if(ib.dashTap[k]>0)ib.dashTap[k]--;
 }
 function ibInput(ib){const p=ib.pressed,k=ib.keys;return {left:k.left|0,right:k.right|0,up:k.up|0,lp:p.lp>0,hp:p.hp>0,sp:p.sp>0,su:p.su>0,th:p.th>0,upP:p.up>0,dashL:ib.dashTap.left>0,dashR:ib.dashTap.right>0}}
-function netSend(o){if(!NET.mq||!NET.mq.ok)return;o.id=NET.me;NET.mq.pub(NET.topic,JSON.stringify(o))}
+function netSend(o){if(!NET.mq||!NET.mq.ok)return;o.id=NET.me;o.q=++NET.seq;NET.mq.pub(NET.topic,JSON.stringify(o))}
 const nowMs=()=>Date.now();
 
 /* ---------- connexion ---------- */
@@ -5453,13 +5469,13 @@ function netAttach(mq,code){
   mq.onclose=()=>netLost();
   clearInterval(NET.tick);NET.tick=setInterval(netTick,500);
 }
-function netCodeFor(bi){for(;;){let c="";for(let i=0;i<4;i++)c+=NET_ALPHA[(Math.random()*NET_ALPHA.length)|0];if(NET_ALPHA.indexOf(c[0])%NETB.length===bi)return c}}
+function netCodeFor(){let c="";for(let i=0;i<4;i++)c+=NET_ALPHA[(Math.random()*NET_ALPHA.length)|0];return c}
 function netClose(){clearInterval(NET.tick);NET.tick=null;if(NET.mq)NET.mq.close();NET.mq=null;NET.joined=false;NET.host=false;NET.ready=false;NET.full=false}
 let netLostTry=0;
 async function netLost(){ // connexion coupée : on retente avec le même code
   if(!NET.code||NET.bye)return;const code=NET.code;
   for(netLostTry=0;netLostTry<3&&!NET.bye;netLostTry++){
-    try{const mq=await netConnect(NET_ALPHA.indexOf(code[0])%NETB.length);if(NET.bye){mq.close();return}netAttach(mq,code);netSend({t:"h",rtt:NET.rtt});return}catch(e){}
+    const mq=await netConnectAll();if(mq){if(NET.bye){mq.close();return}netAttach(mq,code);netSend({t:"h",rtt:NET.rtt});return}
     await new Promise(r=>setTimeout(r,1500))}
   if(!NET.bye)netQuit("La connexion au serveur est coupée.")
 }
@@ -5467,6 +5483,7 @@ async function netLost(){ // connexion coupée : on retente avec le même code
 /* ---------- messages ---------- */
 function netOnMsg(s){
   let m;try{m=JSON.parse(s)}catch(e){return}
+  if(m.q!=null){const k=m.id+":"+m.q;if(NET.seen.has(k))return;NET.seen.add(k);NET.seenQ.push(k);if(NET.seenQ.length>4000)NET.seen.delete(NET.seenQ.shift())} // déjà reçu par un autre serveur
   if(m.id===NET.me){if(m.t==="p"&&m.ts){const r=performance.now()-m.ts;NET.rtt=NET.rtt*0.7+r*0.3}return}
   if(NET.host&&NET.lob){const mm=netMem(m.id);if(mm)mm.seen=nowMs()}
   switch(m.t){
@@ -5628,16 +5645,16 @@ function onModeLabel(){$("onMode").textContent=NET.mode==="koth"?"Roi de la coll
 function onlineOpen(mode){NET.mode=mode;NET.bye=false;onModeLabel();onMsg("");$("codeIn").value="";onPanel("onEntry");musicPlay("select");show("sOnline")}
 async function onCreate(){
   audio();SFX.confirm();onMsg("Connexion au serveur…");$("bCreate").disabled=true;
-  let mq=null,bi=0;for(bi=0;bi<NETB.length&&!mq;bi++){try{mq=await netConnect(bi)}catch(e){mq=null}}
+  const mq=await netConnectAll();
   $("bCreate").disabled=false;
   if(!mq){onMsg("Impossible de joindre le serveur. Vérifie ta connexion internet.",true);return}
-  bi--;NET.host=true;NET.bye=false;netAttach(mq,netCodeFor(bi));onMsg("");askName();
+  NET.host=true;NET.bye=false;netAttach(mq,netCodeFor(0));onMsg("");askName();
 }
 async function onJoin(){
   audio();const code=$("codeIn").value.toUpperCase().replace(/[^A-Z0-9]/g,"");
   if(code.length!==4||[...code].some(c=>NET_ALPHA.indexOf(c)<0)){onMsg("Le code fait 4 caractères (lettres et chiffres).",true);return}
   SFX.confirm();onMsg("Recherche du salon "+code+"…");$("bJoin").disabled=true;
-  let mq=null;try{mq=await netConnect(NET_ALPHA.indexOf(code[0])%NETB.length)}catch(e){}
+  const mq=await netConnectAll();
   if(!mq){$("bJoin").disabled=false;onMsg("Impossible de joindre le serveur. Vérifie ta connexion internet.",true);return}
   NET.host=false;NET.bye=false;netAttach(mq,code);
   const l=await new Promise(r=>{NET.waitL=r;setTimeout(()=>{if(NET.waitL===r){NET.waitL=null;r(null)}},6500)});
