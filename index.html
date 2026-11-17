@@ -256,7 +256,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V2.9</div>
+  <div class="ver">V2.9.1</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -270,7 +270,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.9</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V2.9.1</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -1722,7 +1722,7 @@ function endCine(){
 /* ================= Collisions & dégâts ================= */
 function hurt(f){const h=f.H;return [f.x-26*f.d.b,f.x+26*f.d.b,f.y-(f.lost==="leg"&&!f.air?134:172)*h,f.y]}
 /* ===== Démembrement (rare) : à moins de 20 % de vie, sur un gros coup (pied, spéciale, super), une fois par match ===== */
-const DISM_CHANCE=0.02;
+const DISM_CHANCE=0.04;
 function hq(n){const s=Math.sin(n*12.9898+78.233)*43758.5453;return s-Math.floor(s)} // bruit fixe (pas de hasard : identique en ligne)
 function tryDismember(a,d){
   const r1=Math.random(),r2=Math.random(); // tirés à chaque fois : même suite de hasard des deux côtés en ligne
@@ -5383,7 +5383,7 @@ img(CHLOE_FACE);resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="2.9",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="2.9.1",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"]];
 try{const q=new URLSearchParams(location.search).get("broker");if(q)NETB.splice(0,NETB.length,[q])}catch(e){}
