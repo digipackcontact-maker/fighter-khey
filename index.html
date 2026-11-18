@@ -262,7 +262,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V4.0</div>
+  <div class="ver">V4.1</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -276,7 +276,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.0</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.1</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -978,66 +978,127 @@ function withCtx(ctx,dest,fn){
   try{AC=ctx;MBUS=null;fn()}finally{[AC,MBUS,MCH,NB2,SFXG,MUS.lastLd,MUS.acid,MUS.cut]=sv}
 }
 function secLen(T,key){const spb=T.spb||16;return T.sec[key].bars*spb*60/T.bpm/(spb/4)}
-/* La musique est fabriquée à l'avance, par petites tranches réparties sur plusieurs images :
-   plus aucun à-coup pendant un combat quand un nouveau passage du morceau se prépare. */
-const MJOBS=[];let MJ_RUN=0,MJ_T=0;
+/* La musique est fabriquée à l'avance (hors temps réel), puis simplement jouée.
+   - les notes sont posées par petites tranches réparties sur plusieurs images : aucun à-coup pendant un combat ;
+   - un passage attendu tout de suite part au calcul dès qu'il est posé, en parallèle des autres (rien ne fait la queue) ;
+   - les autres passages du morceau sont posés d'avance, puis calculés un par un quand le téléphone est libre ;
+   - le morceau de la dernière arène reste en mémoire : la revanche repart en musique tout de suite ;
+   - le début du morceau d'une arène se prépare dès qu'on la regarde sur l'écran de choix. */
+const MJOBS=[],MRUN=[];let MNEXT=[],MKEEP=null,MPV=null,MJ_SEQ=0;
 function mjRun(J,fn){
   const sv=[AC,MBUS,MCH,NB2,MUS.lastLd,MUS.acid,MUS.cut];
   try{AC=J.off;MBUS=J.MBUS;MCH=J.MCH;NB2=J.NB2;MUS.lastLd=J.lastLd;MUS.acid=J.acid;MUS.cut=J.cut;fn();
     J.MBUS=MBUS;J.MCH=MCH;J.NB2=NB2;J.lastLd=MUS.lastLd;J.acid=MUS.acid;J.cut=MUS.cut}
   finally{[AC,MBUS,MCH,NB2,MUS.lastLd,MUS.acid,MUS.cut]=sv}
 }
-function mjAdd(ck,off,n,stepFn,acid){
-  const E=RBUF[ck]={buf:null};
-  MJOBS.push({ck,E,off,n,i:-1,stepFn,MBUS:null,MCH:null,NB2:null,lastLd:0,acid:acid||1500,cut:MUS.cut});
-  return E;
+function mjAdd(ck,len,n,stepFn,acid,want){
+  const E=RBUF[ck]={buf:null},J={ck,E,len,off:null,n,i:-1,stepFn,MBUS:null,MCH:null,NB2:null,lastLd:0,acid:acid||1500,cut:MUS.cut,want:!!want,pre:0,q:MJ_SEQ++};
+  E.j=J;MJOBS.push(J);return E;
 }
-function musJobs(budget){
-  if(!MJOBS.length||!AC)return;
-  const t0=performance.now(),inFight=!!(G&&G.phase==="fight"&&!paused&&!G.cine),cur=MUS.id?MUS.id+"|":"-",nxt=MUS.next?MUS.next+"|":"-";
-  for(let i=MJOBS.length-1;i>=0;i--)if(RBUF[MJOBS[i].ck]!==MJOBS[i].E)MJOBS.splice(i,1); // morceau abandonné entre-temps
-  // priorité : le morceau en cours, puis celui du combat qui arrive, puis le reste
-  const pr=J=>J.ck.startsWith(cur)?0:J.ck.startsWith(nxt)?1:2;
-  // 1. un passage entièrement posé part au calcul (hors du fil principal)
-  if(MJ_RUN>0&&t0-MJ_T>25000)MJ_RUN=0;
-  if(MJ_RUN<(G&&G.phase!=="vs"?1:2)){ // pendant un match : un seul calcul à la fois, pour laisser le téléphone au jeu
-let ix=-1,bp=9;for(let i=0;i<MJOBS.length;i++){const J=MJOBS[i];if(J.i>=J.n){const q=pr(J);if(q<bp){bp=q;ix=i}}}
-    if(ix>=0&&!(inFight&&bp>0)){const J=MJOBS.splice(ix,1)[0],E=J.E;MJ_RUN++;MJ_T=t0;offRender(J.off).then(b=>{E.buf=b},()=>{E.fail=1}).then(()=>{MJ_RUN=Math.max(0,MJ_RUN-1)})}}
-  // 2. on pose les notes par petites tranches ; pendant un combat, seul le morceau en cours est préparé
-  for(let pass=0;pass<3;pass++){
-    if(pass>0&&inFight)break;
-    for(let i=0;i<MJOBS.length;i++){const J=MJOBS[i];if(J.i>=J.n||pr(J)!==pass)continue;
-      try{mjRun(J,()=>{
-        if(J.i<0){musBuild(J.off.destination);J.i=0;return}
-        while(J.i<J.n){J.stepFn(J.i);J.i++;if(performance.now()-t0>budget)break}
-      })}catch(e){J.E.fail=1;J.i=J.n;MJOBS.splice(i,1);i--;continue}
-      if(performance.now()-t0>budget)return;
-      if(J.i<J.n)i--;
-    }
+// ordre de passage : 0 = attendu, morceau en cours · 1 = attendu, morceau qui arrive · 1.5 = dans les menus, ce qui sert à l'écran suivant
+// (jingle « face à face », musique de l'écran de choix) · 2 et 3 = le reste des morceaux en cours et à venir · 4 = jingles de fin · 5 = autres
+function mjPr(J){
+  const id=J.ck.slice(0,J.ck.indexOf("|"));
+  if(id===MUS.id)return J.want?0:2;
+  if(MNEXT.indexOf(id)>=0)return J.want?1:3;
+  return J.pre?(J.pre===2&&!G?1.5:4):5;
+}
+function mjSort(a,b){return(mjPr(a)-mjPr(b))||(a.q-b.q)}
+// moments calmes (menus, écran « face à face », résultat, pause) : on peut préparer la musique à pleine allure
+function musCalm(){return !G||paused||G.phase==="vs"||G.phase==="over"}
+// pendant une manche, on ne s'occupe que du morceau en cours (et, tout à la fin, des jingles de victoire et de défaite)
+function mjOk(q,inFight){return !inFight||q===0||q===2||q===4}
+function mjLaunch(inFight){
+  let L=null;for(const J of MJOBS)if(J.i>=J.n)(L||(L=[])).push(J);
+  if(!L)return;
+  // calculs en cours qui servent encore (morceau joué ou morceau qui arrive) ; ceux d'un écran déjà quitté ne bloquent personne
+  let rel=0;for(const R of MRUN){if(RBUF[R.ck]!==R.E)continue;const id=R.ck.slice(0,R.ck.indexOf("|"));if(R.pre||id===MUS.id||MNEXT.indexOf(id)>=0)rel++}
+  L.sort(mjSort);
+  for(const J of L){
+    const q=mjPr(J);if(!mjOk(q,inFight))continue;
+    if(q<=1){if(rel>=3||MRUN.length>=6)continue}   // attendu : tout de suite, trois de front au plus
+    else if(q<=3){if(rel>0)continue}                // le reste du morceau : un par un, quand rien d'attendu ne tourne
+    else if(MRUN.length>0)continue;                 // jingles et restes : quand le téléphone ne calcule plus rien
+    MJOBS.splice(MJOBS.indexOf(J),1);
+    const E=J.E,R={ck:J.ck,E,t:performance.now(),pre:J.pre>0};E.j=null;MRUN.push(R);rel++;
+    const end=()=>{const i=MRUN.indexOf(R);if(i>=0)MRUN.splice(i,1)};
+    offRender(J.off).then(b=>{E.buf=b;end()},()=>{E.fail=1;end()});
   }
 }
-function renderSec(id,key){
-  const ck=id+"|"+key;if(RBUF[ck])return RBUF[ck];
-  const T=TRACKS[id],sec=T.sec[key],spb=T.spb||16,sp=60/T.bpm/(spb/4),len=secLen(T,key),sr=AC.sampleRate;
-  const off=new OAC(1,Math.ceil((len+2.6)*sr),sr);
-  return mjAdd(ck,off,sec.bars*spb,st=>{const s=st%spb,b=(st/spb)|0,sw=T.sw&&s%2===1?sp*T.sw:0;try{musStep(T,sec,b,s,0.01+st*sp+sw,sp,key)}catch(e){}},T.acid||1500);
+function musJobs(budget){
+  if(!AC||!OPT.music)return;
+  const t0=performance.now();
+  for(let i=MJOBS.length-1;i>=0;i--)if(RBUF[MJOBS[i].ck]!==MJOBS[i].E)MJOBS.splice(i,1); // morceau abandonné entre-temps
+  for(let i=MRUN.length-1;i>=0;i--)if(t0-MRUN[i].t>45000)MRUN.splice(i,1);               // calcul perdu : il ne bloque pas les suivants
+  if(!MPRE_OK)MPRE_OK=musPre();
+  if(!MJOBS.length)return;
+  const inFight=!musCalm();
+  mjLaunch(inFight);
+  const B=[];for(const J of MJOBS)if(J.i<J.n)B.push(J);
+  B.sort(mjSort);
+  for(const J of B){
+    if(!mjOk(mjPr(J),inFight))continue;
+    try{
+      if(!J.off)J.off=new OAC(1,Math.ceil(J.len*AC.sampleRate),AC.sampleRate);
+      mjRun(J,()=>{
+        if(J.i<0){musBuild(J.off.destination);J.i=0;if(performance.now()-t0>budget)return}
+        while(J.i<J.n){J.stepFn(J.i);J.i++;if(performance.now()-t0>budget)break}
+      });
+    }catch(e){J.E.fail=1;J.E.j=null;const i=MJOBS.indexOf(J);if(i>=0)MJOBS.splice(i,1);continue}
+    if(J.i>=J.n)mjLaunch(inFight);
+    if(performance.now()-t0>budget)return;
+  }
 }
-function renderHot(id){
-  const ck=id+"|#hot";if(RBUF[ck])return RBUF[ck];const T=TRACKS[id],spb=T.spb||16,sp=60/T.bpm/(spb/4),sr=AC.sampleRate;
-  const off=new OAC(1,Math.ceil((spb*sp+1.8)*sr),sr);
-  return mjAdd(ck,off,spb,s=>{const t=0.01+s*sp;if(s%2===1)DR.h(t,0.5);if(s===0)DR.x(t,0.45);if(s%(spb/4)===0)DR.k(t,0.55)});
+// préparés une fois pour toutes, sans rien bloquer : le jingle « face à face » et le début de la musique de l'écran de choix (dès le menu),
+// puis les jingles de victoire et de défaite. Ces morceaux restent en mémoire : ils sont là tout de suite à chaque fois.
+const MPRE=[["vs",9,2],["select",1,2],["victory",9,1],["defeat",9,1]];let MPRE_OK=false;
+function musPre(){
+  for(const [id,n,lv] of MPRE){const T=TRACKS[id];if(!T)continue;
+    for(let i=0;i<Math.min(n,T.order.length);i++){const k=T.order[i];if(!RBUF[id+"|"+k]){const E=renderSec(id,k,1);if(E.j)E.j.pre=lv}}}
+  return true;
 }
-// avant un combat : tous les passages du morceau de l'arène sont préparés pendant l'écran VS
-function musPrefetch(id){if(!AC||!TRACKS[id])return;if(id!==MUS.id)MUS.next=id;const T=TRACKS[id],seen={};for(const k of T.order){if(!seen[k]){seen[k]=1;renderSec(id,k)}}if(!T.once)renderHot(id)}
+function renderSec(id,key,bg){
+  const ck=id+"|"+key,E0=RBUF[ck];if(E0){if(!bg&&E0.j)E0.j.want=true;return E0}
+  const T=TRACKS[id],sec=T.sec[key],spb=T.spb||16,sp=60/T.bpm/(spb/4);
+  return mjAdd(ck,secLen(T,key)+2.6,sec.bars*spb,st=>{const s=st%spb,b=(st/spb)|0,sw=T.sw&&s%2===1?sp*T.sw:0;try{musStep(T,sec,b,s,0.01+st*sp+sw,sp,key)}catch(e){}},T.acid||1500,!bg);
+}
+function renderHot(id,bg){
+  const ck=id+"|#hot",E0=RBUF[ck];if(E0){if(!bg&&E0.j)E0.j.want=true;return E0}
+  const T=TRACKS[id],spb=T.spb||16,sp=60/T.bpm/(spb/4);
+  return mjAdd(ck,spb*sp+1.8,spb,s=>{const t=0.01+s*sp;if(s%2===1)DR.h(t,0.5);if(s===0)DR.x(t,0.45);if(s%(spb/4)===0)DR.k(t,0.55)},0,!bg);
+}
+function musIsArena(id){return id==="train"||ARENA_MUS.indexOf(id)>=0}
+// morceau qui va être joué : son début est attendu tout de suite, le reste est préparé d'avance
+function musPrefetch(id){
+  if(!AC||!TRACKS[id])return;const T=TRACKS[id],ar=musIsArena(id);
+  if(id!==MUS.id)MNEXT=[id];
+  if(ar)MKEEP=id;
+  // arène : l'intro et le premier couplet partent ensemble ; menus : le début seulement (la suite se calcule juste après, sans rien bloquer)
+  renderSec(id,T.order[0]);if(T.order[1])renderSec(id,T.order[1],ar?0:1);
+  if(ar)renderHot(id,1);
+  for(const k of T.order)renderSec(id,k,1);
+}
+// en avance : seulement le début d'un morceau qui arrive bientôt (jingle « face à face », arène regardée sur l'écran de choix, écran de résultat)
+function musEarly(id,pv){
+  if(!AC||!TRACKS[id]||id===MUS.id)return;
+  if(pv){
+    if(MPV&&MPV!==id){const i=MNEXT.indexOf(MPV);if(i>=0)MNEXT.splice(i,1);
+      if(MPV!==MKEEP)for(const k in RBUF)if(k.startsWith(MPV+"|")&&RBUF[k].j)delete RBUF[k]} // arène regardée puis laissée : ce qui n'est pas commencé est abandonné
+    MPV=id}
+  if(MNEXT.indexOf(id)<0)MNEXT.push(id);
+  renderSec(id,TRACKS[id].order[0]);
+}
 function musicPlay(id){if(RB_REPLAY)return;
   if(!AC)return;musInit();const T=TRACKS[id];if(!T)return;
   if(MUS.id===id&&!T.once)return;
   musicStop();
-  // les autres morceaux sont libérés pour garder peu de mémoire
-  for(const k in RBUF){const tid=k.split("|")[0];if(tid!==id&&tid!=="menu"&&!TRACKS[tid].once)delete RBUF[k]}
+  {const i=MNEXT.indexOf(id);if(i>=0)MNEXT.splice(i,1);if(id==="menu"){MNEXT=[];MPV=null}}
+  // les autres morceaux sont libérés pour garder peu de mémoire (sauf le menu, l'écran de choix, les jingles, la dernière arène et ce qui arrive juste après)
+  for(const k in RBUF){const tid=k.split("|")[0];if(tid!==id&&tid!=="menu"&&tid!=="select"&&!TRACKS[tid].once&&tid!==MKEEP&&MNEXT.indexOf(tid)<0)delete RBUF[k]}
   const out=AC.createGain();out.gain.value=T.gain||1;out.connect(MFILT);
-  MUS.out=out;MUS.id=id;MUS.idx=0;MUS.qEnd=0;MUS.srcs=[];MUS.hotNext=0;
+  MUS.out=out;MUS.id=id;MUS.idx=0;MUS.qEnd=0;MUS.srcs=[];MUS.hotNext=0;MUS.lastKey=null;
   musPrefetch(id);
+  if(T.then)musEarly(T.then);else if(id==="select")musEarly("vs");
   musPump();
 }
 function musicStop(){
@@ -1049,12 +1110,15 @@ function musPump(){
   const T=TRACKS[MUS.id];if(!T||!AC||!MUS.out||MUS.idx<0)return;const now=AC.currentTime;
   let guard=0;
   while(MUS.id&&(MUS.qEnd<now+1.2)&&guard++<4){
-    const key=T.order[MUS.idx],E=renderSec(MUS.id,key);
-    if(!E.buf){if(E.fail){MUS.idx=(MUS.idx+1)%T.order.length}break}
+    let key=T.order[MUS.idx],E=renderSec(MUS.id,key),again=false;
+    if(!E.buf){if(E.fail){MUS.idx=(MUS.idx+1)%T.order.length;break}
+      const L=MUS.lastKey?RBUF[MUS.id+"|"+MUS.lastKey]:null;
+      if(!L||!L.buf||T.once||MUS.qEnd>now+0.3)break;
+      key=MUS.lastKey;E=L;again=true}
     const at=Math.max(MUS.qEnd,now+0.04);
     const s=AC.createBufferSource();s.buffer=E.buf;s.connect(MUS.out);s.start(at);MUS.srcs.push(s);if(MUS.srcs.length>6)MUS.srcs.shift();
     if(!MUS.hotNext||MUS.hotNext<at)MUS.hotNext=at;
-    MUS.qEnd=at+secLen(T,key);
+    MUS.qEnd=at+secLen(T,key);MUS.lastKey=key;if(again)break;
     if(++MUS.idx>=T.order.length){
       if(T.once){const nx=T.then,wait=(MUS.qEnd-now)*1000+300;MUS.idx=-1;const myOut=MUS.out;
         setTimeout(()=>{if(MUS.out===myOut){MUS.id=null;if(nx)musicPlay(nx)}},wait);break}
@@ -1062,8 +1126,8 @@ function musPump(){
     renderSec(MUS.id,T.order[MUS.idx]);
   }
   // couche d'intensité (fin de combat serrée) calée sur les mesures
-  if(!T.once&&MUS.hotNext){const spb=T.spb||16,bar=spb*60/T.bpm/(spb/4),H=renderHot(MUS.id);
-    while(MUS.hotNext<now+0.4&&MUS.hotNext<MUS.qEnd){if(MUS.hot&&H.buf&&MUS.hotNext>now+0.02){const s=AC.createBufferSource();s.buffer=H.buf;s.connect(MUS.out);s.start(MUS.hotNext)}MUS.hotNext+=bar}}
+  if(!T.once&&MUS.hotNext){const spb=T.spb||16,bar=spb*60/T.bpm/(spb/4),H=MUS.hot?renderHot(MUS.id):RBUF[MUS.id+"|#hot"];
+    while(MUS.hotNext<now+0.4&&MUS.hotNext<MUS.qEnd){if(MUS.hot&&H&&H.buf&&MUS.hotNext>now+0.02){const s=AC.createBufferSource();s.buffer=H.buf;s.connect(MUS.out);s.start(MUS.hotNext)}MUS.hotNext+=bar}}
 }
 /* --- intensité et mixage pilotés par le combat : la musique s'efface derrière les spéciales et les supers --- */
 function musDuck(sec){if(AC)MUS.duckUntil=AC.currentTime+sec}
@@ -3665,7 +3729,7 @@ function drawFighterAt(g,d,col,pose,x,y,dir,opts={}){
   const shF=[sh[0]+Math.cos(tr)*6*b,sh[1]+Math.sin(tr)*6*b],shB=[sh[0]-Math.cos(tr)*6*b,sh[1]-Math.sin(tr)*6*b];
   const eB=segEnd(shB[0],shB[1],pose.aB,UA),hB=segEnd(eB[0],eB[1],pose.aB+pose.fB,FA);
   const eF=segEnd(shF[0],shF[1],pose.aF,UA),hF=segEnd(eF[0],eF[1],pose.aF+pose.fF,FA);
-  const dk=0.7,outline=opts.flash?"#fff":(opts.inv?"#8fe4ff":"#140e14"),OW=2.3*h,LGx=LIGHT.x*dir,LGy=LIGHT.y;
+  const dk=0.7,outline=opts.flash>=0.6?"#fff":(opts.inv?"#8fe4ff":"#140e14"),OW=2.3*h,LGx=LIGHT.x*dir,LGy=LIGHT.y;
   const lerp=(a,bb,t)=>[a[0]+(bb[0]-a[0])*t,a[1]+(bb[1]-a[1])*t];
   // capsule effilée (deux cercles reliés par leurs tangentes) ajoutée au chemin courant
   function capP(a,bb,ra,rb){const dx=bb[0]-a[0],dy=bb[1]-a[1],dd=Math.hypot(dx,dy)||0.001,th=Math.atan2(dy,dx),al=Math.asin(Math.max(-0.95,Math.min(0.95,(ra-rb)/dd))),q=Math.PI/2+al;
@@ -4065,9 +4129,9 @@ function drawHead(g,d,col,c,R,rot,opts){
     const hset=d.outfit&&d.outfit.headset&&!opts.noHeadset;
     if(hset)drawHeadset(g,R,d.headset,"back");
     g.globalAlpha=0.28;g.drawImage(silOf(im,"#000"),-S/2+R*0.05,-S/2+R*0.1,S,S);g.globalAlpha=1;
-    if(!opts.flat&&!opts.noInk){const ik=inkOf(im,opts.flash?"#ffffff":opts.inv?"#8fe4ff":"#140e14"),pd=S*im._ip;g.drawImage(ik,-S/2-pd,-S/2-pd,S+pd*2,S+pd*2)}
+    if(!opts.flat&&!opts.noInk){const ik=inkOf(im,opts.flash>=0.6?"#ffffff":opts.inv?"#8fe4ff":"#140e14"),pd=S*im._ip;g.drawImage(ik,-S/2-pd,-S/2-pd,S+pd*2,S+pd*2)}
     g.drawImage(im,-S/2,-S/2,S,S);
-    if(opts.flash){g.globalAlpha=0.6;g.drawImage(silOf(im,"#fff"),-S/2,-S/2,S,S);g.globalAlpha=1}
+    if(opts.flash){g.globalAlpha=0.4*Math.min(1,+opts.flash);g.drawImage(silOf(im,"#fff"),-S/2,-S/2,S,S);g.globalAlpha=1}
     g.save();g.beginPath();g.ellipse(0,R*0.05,R*0.78,R*0.98,0,0,7);g.clip();
     if(opts.dmg>=1)wounds(g,R,opts.dmg,mt,opts.wv!==undefined?opts.wv:((G&&G.wvSeed)||0)+(d.id||"x").length+(d.id||"x").charCodeAt(0));
     if(opts.paint){g.fillStyle=opts.paint;g.globalAlpha=0.88;for(const [bx,by,r] of [[-0.35,-0.55,0.3],[0.3,-0.2,0.22],[0.05,-0.85,0.25]]){g.beginPath();g.ellipse(bx*R,by*R,r*R,r*R*0.8,0,0,7);g.fill();g.fillRect(bx*R-R*0.05,by*R,R*0.1,r*R*1.6)}g.globalAlpha=1}
@@ -4206,7 +4270,7 @@ function tubeInMouth(g,R){
 }
 function fOpts(f){
   const st=f.state,pr=f.prop();
-  const o={flash:f.flashT>0||(f.shockT>0&&G.frame%4<2),prop:pr,fire:st==="super",win:st==="win",ko:st==="ko"||st==="knockdown",
+  const o={flash:Math.max(flashLv(f),f.shockT>0&&G.frame%4<2?0.7:0),prop:pr,fire:st==="super",win:st==="win",ko:st==="ko"||st==="knockdown",
     dmg:OPT.blood?Math.max(visLv(f),f.goreT>0?Math.min(visLv(f)+1,f.goreLv||0):0):0,stains:OPT.blood&&visLv(f)>=3?(f.stains||0):0,intub:f.tubeT>0,pv:f.pvT>0,diaper:f.diaperT>0,sooty:true,tire:f.tireT>0,npc:f.npcT>0,thirdEye:(st==="super"||(st==="attack"&&f.atk&&f.atk.n==="sp"&&f.d.special.proj==="eye")),foil:f.d.id==="kev1"&&(st==="win"||st==="super"),
     zin:st==="attack"&&f.atk&&f.atk.zin,paint:f.paintT>0?f.paintCol:null,blush:f.blushT>0,ears:f.earsT>0,googly:f.googlyT>0,lost:f.lost||null};
   if(pr==="controller")o.propPh={t:f.t,su:f.atk.su,ac:f.atk.ac};
@@ -4278,7 +4342,7 @@ function drawHUD(){
     seg(f.redHp/1000,hgrad(g,"rd",by,by+bh,[[0,"#ff8a70"],[0.45,"#ff3b1f"],[1,"#b51a08"]]));
     seg(f.dispHp/1000,low?hgrad(g,"lw",by,by+bh,[[0,"#ffb09a"],[0.4,"#ff4a2a"],[1,"#c2200c"]]):hgrad(g,"hp",by,by+bh,[[0,"#fff3a6"],[0.38,"#ffd23d"],[0.62,"#ffbd24"],[1,"#e98a10"]]));
     if(low){g.fillStyle=`rgba(255,255,255,${beat*0.22})`;seg(f.dispHp/1000,g.fillStyle)}
-    if(f.flashT>0)seg(f.dispHp/1000,"#fff");
+    {const lv=flashLv(f);if(lv>0){g.fillStyle=`rgba(255,255,255,${(0.8*lv).toFixed(2)})`;seg(f.dispHp/1000,g.fillStyle)}}
     // arête lumineuse là où la vie s'arrête, reflet, graduations
     {const w=bw*f.dispHp/1000,ex=left?bx+bw-w:bx+w;if(f.dispHp>4&&f.dispHp<996){g.fillStyle="rgba(255,255,255,.75)";g.beginPath();g.moveTo(ex+sk-1.2,by);g.lineTo(ex+sk+1.4,by);g.lineTo(ex+1.4,by+bh);g.lineTo(ex-1.2,by+bh);g.closePath();g.fill()}}
     g.fillStyle="rgba(255,255,255,.34)";g.fillRect(bx-12,by+1,bw+24,3);g.fillStyle="rgba(255,255,255,.1)";g.fillRect(bx-12,by+4,bw+24,3);
@@ -5104,12 +5168,22 @@ function setLight(lx,ly){const sx=lx>=0?1:-1,ax=Math.max(Math.abs(lx),0.45),n=Ma
 // ombre portée : [penché, longueur, force] par arène (soleil bas = ombres longues, plafonnier = ombres courtes)
 const SHD={prom:[-0.5,0.46,0.34],vn:[-0.45,0.3,0.3],rea:[-0.08,0.2,0.22],neige:[0.4,0.34,0.26],creche:[0.4,0.26,0.2],z51:[-0.2,0.24,0.34],cathe:[0,0.24,0.3],
   juillet:[-0.5,0.3,0.3],forum:[0.45,0.26,0.3],piaule:[0.2,0.22,0.3],shop:[-0.1,0.2,0.26],stream:[0.4,0.26,0.32],urbex:[0.5,0.36,0.36]};
-const SHCOL="#0d0820",LITK={form:0.26,foot:0.22,top:0.07,off:9.5};
+const SHCOL="#0d0820",LITK={form:0.2,foot:0.2,top:0.025,off:9.5};
+// dernière silhouette dessinée (sert à tenir les combattants hors du halo lumineux : visages et peaux restent nets)
+const LITR={ok:false,x:0,y:0,w:0,h:0,w4:0,h4:0};
 // éclat des impacts : les combattants s'éclairent une fraction de seconde quand un coup porte
 function hitLight(){let m=0;for(const s of fx.stars)m=Math.max(m,s.life/8);return Math.min(1,m)}
+const FLV=[{ft:0,t0:-99},{ft:0,t0:-99}];
+function flashLv(f){
+  const S=FLV[f.side?1:0],ft=f.flashT||0;
+  if(ft>S.ft||(ft>0&&TICK<S.t0))S.t0=TICK; // nouveau coup reçu
+  S.ft=ft;if(ft<=0)return 0;
+  const a=TICK-S.t0;return a<2?1:a<6?1-(a-1)*0.2:0;
+}
+// corps qui file vraiment : ruée, esquive, projection, envol, attaque en ruée (les coups normaux ne laissent plus d'image fantôme)
 function fastBody(f){const s=f.state;if(s==="dash"||s==="backdash"||s==="thrown")return 1;if(s==="super"&&f.superPhase==="rush")return 1;
   if(f.launched||(s==="hitstun"&&f.air))return 1;
-  if(s==="attack"&&f.atk){const a=f.atk;if(f.t>=a.su-2&&f.t<a.su+a.ac+3&&(a.n!=="lp"||a.dash))return 1}
+  if(s==="attack"&&f.atk&&f.atk.dash){const a=f.atk;if(f.t>=a.su-2&&f.t<a.su+a.ac+3)return 1}
   return 0}
 function trailsClear(){TB.live=0;tbA.setTransform(1,0,0,1,0,0);tbA.clearRect(0,0,TBa.width,TBa.height)}
 function drawBodiesLit(g,order,sx,sy,body){
@@ -5129,6 +5203,7 @@ function drawBodiesLit(g,order,sx,sy,body){
   fitC(RCH,w2+2,h2+2);hctx.setTransform(1,0,0,1,0,0);hctx.globalCompositeOperation="source-over";hctx.globalAlpha=1;hctx.clearRect(0,0,w2+2,h2+2);hctx.drawImage(RC,0,0,w,h,0,0,w2,h2);
   fitC(RCS,w4+2,h4+2);sctx.setTransform(1,0,0,1,0,0);sctx.globalCompositeOperation="source-over";sctx.globalAlpha=1;sctx.clearRect(0,0,w4+2,h4+2);sctx.drawImage(RCH,0,0,w2,h2,0,0,w4,h4);
   sctx.globalCompositeOperation="source-in";sctx.fillStyle=SHCOL;sctx.fillRect(0,0,w4+2,h4+2);sctx.globalCompositeOperation="source-over";
+  LITR.ok=true;LITR.x=X0;LITR.y=Y0;LITR.w=w;LITR.h=h;LITR.w4=w4;LITR.h4=h4;
   // --- ombre de forme (côté opposé à la lumière) + ancrage au sol, préparés en petit puis posés en une seule passe dans le calque des corps :
   //     le visage photo et le corps dessiné reçoivent exactement la même lumière
   {const off=LITK.off*zS*0.25;fitC(RCF,w4+2,h4+2);
@@ -5155,9 +5230,9 @@ function drawBodiesLit(g,order,sx,sy,body){
   if(ra){const bh=15*zS;
     for(let i=0;i<4;i++){const yb=gY+i*bh,hb=i<3?bh+1:cv.height-yb;if(hb<=0||yb>=cv.height)break;ctx.save();ctx.beginPath();ctx.rect(X0,yb,w,hb);ctx.clip();
       ctx.globalAlpha=ra*[1,0.62,0.34,0.14][i];ctx.translate(0,2*gY);ctx.scale(1,-1);ctx.drawImage(RC,0,0,w,h,X0,Y0,w,h);ctx.restore()}}
-  if(tr){ctx.globalAlpha=0.6;ctx.drawImage(TBa,tr[0],tr[1],tr[2],tr[3],tr[0]*2,tr[1]*2,tr[2]*2,tr[3]*2)}
+  if(tr){ctx.globalAlpha=0.34;ctx.drawImage(TBa,tr[0],tr[1],tr[2],tr[3],tr[0]*2,tr[1]*2,tr[2]*2,tr[3]*2)}
   ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";ctx.drawImage(RC,0,0,w,h,X0,Y0,w,h);
-  ctx.globalCompositeOperation="lighter";ctx.globalAlpha=Math.min(1,al+hl*0.45);ctx.drawImage(RC2,0,0,w2,h2,X0,Y0,w,h);ctx.restore();
+  ctx.globalCompositeOperation="lighter";ctx.globalAlpha=Math.min(1,al*0.85+hl*0.06);ctx.drawImage(RC2,0,0,w2,h2,X0,Y0,w,h);ctx.restore();
 }
 // images fantômes ancrées dans le décor derrière un corps qui file (ruée, esquive, gros coup, projection)
 function trailsPrep(X0,Y0,w,h,sx,sy,S,col){
@@ -5169,7 +5244,7 @@ function trailsPrep(X0,Y0,w,h,sx,sy,S,col){
   if(TB.live>0){
     // on replace les anciennes images à leur place dans le décor (la caméra a pu bouger), en les estompant
     const k=cam.z/TB.cz,ox=((TB.cl-cam.left)*cam.z+sx)*S*0.5,oy=((TB.ct-cam.top)*cam.z+sy)*S*0.5;
-    tbB.setTransform(1,0,0,1,0,0);tbB.globalCompositeOperation="copy";tbB.globalAlpha=Math.pow(0.86,RDT);
+    tbB.setTransform(1,0,0,1,0,0);tbB.globalCompositeOperation="copy";tbB.globalAlpha=Math.pow(0.8,RDT);
     tbB.setTransform(k,0,0,k,ox,oy);tbB.drawImage(TBa,0,0);tbB.globalCompositeOperation="source-over";tbB.globalAlpha=1;
     [TBa,TBb]=[TBb,TBa];[tbA,tbB]=[tbB,tbA];
     TB.x0=TB.x0*k+ox;TB.y0=TB.y0*k+oy;TB.x1=TB.x1*k+ox;TB.y1=TB.y1*k+oy;
@@ -5184,8 +5259,12 @@ function trailsPrep(X0,Y0,w,h,sx,sy,S,col){
     else{TB.x0=Math.min(TB.x0,rx);TB.y0=Math.min(TB.y0,ry);TB.x1=Math.max(TB.x1,rx+rw);TB.y1=Math.max(TB.y1,ry+rh)}
     // teinte : les images déjà présentes glissent un peu plus vers la couleur de la lumière de l'arène, puis on pose l'image du moment
     tbA.setTransform(1,0,0,1,0,0);tbA.globalCompositeOperation="source-atop";tbA.globalAlpha=0.3;tbA.fillStyle=col;tbA.fillRect(Math.floor(TB.x0),Math.floor(TB.y0),Math.ceil(TB.x1-TB.x0)+1,Math.ceil(TB.y1-TB.y0)+1);
-    tbA.globalCompositeOperation="source-over";tbA.globalAlpha=1;tbA.drawImage(RC,0,0,w,h,rx,ry,rw,rh);
-    TB.live=16;
+    tbA.globalCompositeOperation="source-over";tbA.globalAlpha=1;
+    // seul le combattant qui file laisse une image (plus celui d'en face)
+    for(const f of [G.p1,G.p2]){if(!fastBody(f))continue;const m=(f.launched||f.state==="thrown"||f.air)?210:150;
+      const xa=Math.max(0,Math.floor(((f.x-m-cam.left)*cam.z+sx)*S-X0)),xb=Math.min(w,Math.ceil(((f.x+m-cam.left)*cam.z+sx)*S-X0));
+      if(xb-xa>4)tbA.drawImage(RC,xa,0,xb-xa,h,(X0+xa)*0.5,ry,(xb-xa)*0.5,rh)}
+    TB.live=11;
   }
   return out;
 }
@@ -5270,7 +5349,7 @@ function lightning(g,f){
 const [BL1,b1x]=mkC(),[BT1,t1x]=mkC(),[BL2,b2x]=mkC(),[BL3,b3x]=mkC();
 let POSTN=0;
 // force du halo par arène (les décors déjà très clairs en reçoivent moins)
-const BLOOM={prom:0.6,vn:0.75,rea:0.45,neige:0.36,creche:0.36,z51:0.8,cathe:0.7,juillet:0.42,forum:0.32,piaule:0.7,shop:0.42,stream:0.7,urbex:0.8};
+const BLOOM={prom:0.5,vn:0.58,rea:0.4,neige:0.3,creche:0.3,z51:0.6,cathe:0.55,juillet:0.36,forum:0.28,piaule:0.55,shop:0.36,stream:0.55,urbex:0.6};
 function quarterFrame(){
   const cw=cv.width,ch=cv.height,w1=Math.max(8,cw>>2),h1=Math.max(8,ch>>2);
   if(BL1.width!==w1||BL1.height!==h1){BL1.width=BT1.width=w1;BL1.height=BT1.height=h1;BL2.width=w1>>1;BL2.height=h1>>1;BL3.width=w1>>2;BL3.height=h1>>2;
@@ -5283,6 +5362,8 @@ function bloomPass(k){
   const cw=cv.width,ch=cv.height,w1=BL1.width,h1=BL1.height,w2=BL2.width,h2=BL2.height,w3=BL3.width,h3=BL3.height;
   t1x.setTransform(1,0,0,1,0,0);t1x.globalAlpha=1;t1x.globalCompositeOperation="copy";t1x.drawImage(BL1,0,0);
   t1x.globalCompositeOperation="color-burn";t1x.fillStyle="#6b6b6b";t1x.fillRect(0,0,w1,h1); // seuil : seules les parties vraiment lumineuses restent (soleil, néons, étincelles)
+  // les combattants ne rayonnent pas : le halo vient du décor et des effets, jamais des visages ni de la peau
+  if(LITR.ok){const q=w1/cw;t1x.globalCompositeOperation="destination-out";t1x.globalAlpha=0.9;t1x.drawImage(RCS,0,0,LITR.w4,LITR.h4,LITR.x*q,LITR.y*q,LITR.w*q,LITR.h*q);t1x.globalAlpha=1;LITR.ok=false}
   b3x.setTransform(1,0,0,1,0,0);b3x.globalAlpha=1;b3x.globalCompositeOperation="copy";b3x.drawImage(BT1,0,0,w1,h1,0,0,w3,h3);
   // halo serré + halo large réunis dans une seule petite image : un seul passage plein écran ensuite
   b2x.setTransform(1,0,0,1,0,0);b2x.globalAlpha=1;b2x.globalCompositeOperation="copy";b2x.drawImage(BT1,0,0,w1,h1,0,0,w2,h2);
@@ -5293,7 +5374,7 @@ function bloomPass(k){
 function postFX(A){
   POSTN++;AMB.fresh=false;
   if(GQ<2)return;
-  quarterFrame();bloomPass((BLOOM[A.id]||0.5)*(1+0.12*hitLight()));
+  quarterFrame();bloomPass(BLOOM[A.id]||0.45);
 }
 /* Bandes d'ambiance : sur les écrans plus larges que l'image du jeu, les côtés ne sont plus noirs.
    Ils prolongent le décor en flou (miroir de l'image, très adouci), comme un halo autour de l'écran de jeu. */
@@ -5381,10 +5462,10 @@ function drawGlowParts(g){
       g.globalAlpha=Math.min(1,k*1.2);g.fillStyle="#fff";g.beginPath();g.arc(p.x,p.y,Math.max(0.7,p.r*0.42*k),0,7);g.fill();continue}
     g.globalAlpha=k;const R=p.r*1.75;g.drawImage(softSpr(p.col),p.x-R,p.y-R,R*2,R*2)}
   for(const s of fx.streaks){const k=s.life/s.max,c=Math.cos(s.an),sn=Math.sin(s.an),d1=s.d0+s.len*k,x0=s.x+c*s.d0,y0=s.y+sn*s.d0,x1=s.x+c*d1,y1=s.y+sn*d1;
-    g.strokeStyle=s.col;g.globalAlpha=Math.min(1,k*1.4)*0.26;g.lineWidth=(s.w*k+0.5)*2.3;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
+    g.strokeStyle=s.col;g.globalAlpha=Math.min(1,k*1.4)*0.2;g.lineWidth=(s.w*k+0.5)*2.1;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
     g.globalAlpha=Math.min(1,k*1.4);g.lineWidth=s.w*k+0.5;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke()}
   for(const s of fx.stars){const k=s.life/8,R=s.s*2.1;
-    g.globalAlpha=k*0.62;g.drawImage(glowHex(s.col),s.x-R,s.y-R,R*2,R*2);
+    g.globalAlpha=k*0.45;g.drawImage(glowHex(s.col),s.x-R,s.y-R,R*2,R*2);
     g.globalAlpha=k;g.fillStyle=s.col;g.save();g.translate(s.x,s.y);g.rotate(s.life*0.3);
     g.beginPath();for(let i=0;i<8;i++){const r=i%2?s.s*0.2:s.s*(1.25-k*0.4);const a=i/8*Math.PI*2;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.fill();
     g.fillStyle="#fff";g.beginPath();g.arc(0,0,s.s*0.3*k+1,0,7);g.fill();g.restore()}
@@ -5405,7 +5486,7 @@ function renderScene(){
   const g=ctx;g.setTransform(VS*DPR,0,0,VS*DPR,0,0);
   if(!G){drawMenuBG(g);return}
   if(G.phase==="vs"){if(G.vsT>=3)prewarm();drawVS(g);return}
-  if(G.cine){drawCine(g);AMB.fresh=false;if(GQ>=2){quarterFrame();bloomPass(0.42)}return}
+  if(G.cine){drawCine(g);AMB.fresh=false;if(GQ>=2){LITR.ok=false;quarterFrame();bloomPass(0.2)}return}
   let sx=0,sy=0;if(shake>0){sx=(Math.random()-0.5)*shake;sy=(Math.random()-0.5)*shake;shake*=Math.pow(0.86,RDT);if(shake<0.5)shake=0}
   const imp=G.imp>0;
   g.save();g.translate(sx,sy);camT(g);
@@ -5595,6 +5676,7 @@ function gfxGovern(dt){
 try{const v=+localStorage.getItem("fk_glv");if(v>0)GLV=Math.min(GLEVELS.length-1,v-1)}catch(e){}
 function loop(now){
   if(HALF&&now-last<12&&now>=last){requestAnimationFrame(loop);return} // une image sur deux, seulement si l'écran va vraiment trop vite
+  const tIn=performance.now();
   let dt=now-last;last=now;
   if(!(dt>=0&&dt<250)){dt=STEP_MS;PACE.err=0}
   RDT=Math.min(4,dt/STEP_MS);
@@ -5612,7 +5694,8 @@ function loop(now){
   if(PACE.ok&&PACE.hz>=70&&!paused){const a=Math.max(0,Math.min(1,acc/STEP_MS));PACE.aMax=Math.max(a,PACE.aMax-0.004);RALPHA=Math.min(1,a+1-PACE.aMax)}
   else{RALPHA=1;PACE.aMax=1}
   render();try{musUpdate()}catch(e){}
-  try{musJobs(G&&G.phase==="fight"&&!paused&&!G.cine?Math.max(2.5,Math.min(8,dt*0.16)):Math.max(9,Math.min(40,dt*0.5)))}catch(e){}
+  // préparation de la musique : dès qu'une manche est à l'écran (entrée, combat, K.-O., cinématique), seulement dans le temps laissé libre par l'image
+  try{musJobs(musCalm()?Math.max(9,Math.min(40,dt*0.5)):Math.max(0.5,Math.min(4,(PACE.ok?PACE.iv:STEP_MS)-5-(performance.now()-tIn))))}catch(e){}
   if(mbg.style.display!=="none")drawMenuScene();
   if($("sSelect").classList.contains("on")&&TICK%2===0)drawSelectPreview();
   requestAnimationFrame(loop);
@@ -5725,8 +5808,15 @@ function openSelect(step){
   }
   show("sSelect");sizeCanvas($("pv"));drawSelectPreview();
 }
-let arenaPick=-1;
+let arenaPick=-1,AMT=0;
+function arenaMusSoon(){
+  clearTimeout(AMT);AMT=setTimeout(()=>{try{
+    if(!$("sSelect").classList.contains("on")||selStep!==1)return;
+    const a=arenaPick>=0?arenaPick:bagPeek("arena",ARENAS.map((_,i)=>i));
+    musEarly(mode==="train"?"train":ARENA_MUS[a],1)}catch(e){}},450);
+}
 function refreshArena(){
+  arenaMusSoon();
   const c=$("aThumb"),g=c.getContext("2d");g.setTransform(1,0,0,1,0,0);
   if(arenaPick<0){g.fillStyle="#1c1c24";g.fillRect(0,0,c.width,c.height);g.fillStyle="#ffcf33";g.font=`70px ${FT}`;g.textAlign="center";g.textBaseline="middle";g.fillText("?",c.width/2,c.height/2+4);$("aName").textContent="Au hasard";return}
   const A=ARENAS[arenaPick];g.drawImage(thumbBG(A),0,0,c.width,c.height);g.save();g.scale(c.width/W,c.height/H);try{A.dyn(g,TICK)}catch(e){}g.restore();$("aName").textContent=A.name;
@@ -5771,15 +5861,17 @@ $("bGo").onclick=()=>{audio();SFX.confirm();
   newMatch(me,opp,mode,diff,false,arenaPick>=0?arenaPick:bagPick("arena",ARENAS.map((_,i)=>i)));show(null)};
 // tirage « au hasard » sans répétition : on vide un sac mélangé avant de le remplir à nouveau
 const BAGS={};
-function bagPick(key,items){
+function bagFill(key,items){
   let b=BAGS[key];
   if(!b||!b.left.length||b.sig!==items.join(",")){
     const left=items.slice();for(let i=left.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[left[i],left[j]]=[left[j],left[i]]}
     if(b&&left.length>1&&left[left.length-1]===b.last)[left[0],left[left.length-1]]=[left[left.length-1],left[0]];
     b=BAGS[key]={left,sig:items.join(","),last:b?b.last:null};
   }
-  const v=b.left.pop();b.last=v;return v;
+  return b;
 }
+function bagPick(key,items){const b=bagFill(key,items),v=b.left.pop();b.last=v;return v}
+function bagPeek(key,items){const b=bagFill(key,items);return b.left[b.left.length-1]}
 function showResult(w){
   G.phase="over";const won=w===G.p1;
   $("resWho").textContent=w.d.name+" l'emporte";
