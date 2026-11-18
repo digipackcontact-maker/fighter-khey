@@ -222,6 +222,7 @@ canvas#c{position:absolute;display:block}
 .dg svg{width:22px;height:22px}
 .dg.down{color:var(--acc)}
 #dpad{position:absolute;left:-14px;bottom:-10px;width:262px;height:196px;pointer-events:auto;touch-action:none}
+#bcatch{position:absolute;right:-6px;bottom:-6px;width:288px;height:212px;pointer-events:auto;touch-action:none}
 .k.thr{color:rgba(242,237,228,.85);box-shadow:inset 0 0 0 2px rgba(242,237,228,.38)}
 .k.thr.down{background:rgba(255,59,31,.55)}
 .k.sup.ready{color:var(--ink);background:var(--yel);box-shadow:0 0 18px rgba(255,207,51,.6);animation:pls .5s infinite alternate}
@@ -248,6 +249,7 @@ canvas#c{position:absolute;display:block}
     <div id="dpad"></div>
   </div>
   <div class="pad" id="rpad" style="right:6px;bottom:6px;width:270px;height:195px">
+    <div id="bcatch"></div>
     <div class="k big" data-k="lp" style="right:112px;bottom:8px;width:80px;height:80px">Poing</div>
     <div class="k big" data-k="hp" style="right:18px;bottom:34px;width:80px;height:80px">Pied</div>
     <div class="k" data-k="sp" style="right:104px;bottom:98px;width:70px;height:70px;font-size:12px">Spécial</div>
@@ -262,7 +264,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V4.1</div>
+  <div class="ver">V4.2</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -276,7 +278,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.1</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.2</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -507,10 +509,16 @@ function resize(){
   $("pause").style.right=(12+SA.r)+"px";
   for(const [id,o] of [["lpad","bottom left"],["rpad","bottom right"]]){const e=document.getElementById(id);e.style.transform=`scale(${s})`;e.style.transformOrigin=o}
   padSc=s;
+  // zones tactiles : la croix répond un peu au-delà de ses flèches (28 points à gauche, 20 dessous ; pas jusqu'au bord de l'écran, où se pose la paume),
+  // et la zone des boutons d'attaque couvre leurs alentours
+  {const ex=Math.min((14+SA.l)/s,28),ey=Math.min((10+SA.b*0.6)/s,20),dp=$("dpad");dp.style.left=-ex+"px";dp.style.bottom=-ey+"px";dp.style.width=(ex+248)+"px";dp.style.height=(ey+186)+"px";
+   const bx=Math.min((6+SA.r)/s,20),by=Math.min((6+SA.b*0.6)/s,20),bc=$("bcatch");bc.style.right=-bx+"px";bc.style.bottom=-by+"px";bc.style.width=(bx+282)+"px";bc.style.height=(by+206)+"px"}
+  PADB=null;
   if(document.getElementById("sSelect").classList.contains("on"))sizeCanvas($("pv"));
   sizeMBG();ambLayout();
 }
-addEventListener("resize",resize);addEventListener("orientationchange",()=>{setTimeout(fixView,200);setTimeout(fixView,700)});
+addEventListener("resize",resize);addEventListener("orientationchange",()=>{setTimeout(fixView,200);setTimeout(fixView,700);setTimeout(fixView,1600)});
+try{screen.orientation.addEventListener("change",()=>{setTimeout(fixView,300);setTimeout(fixView,1000)})}catch(e){}
 document.addEventListener("focusout",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")){setTimeout(fixView,80);setTimeout(fixView,400);setTimeout(fixView,1000)}});
 if(window.visualViewport){visualViewport.addEventListener("resize",()=>{if(!kbOpen())fixView()});visualViewport.addEventListener("scroll",()=>{if(!kbOpen()&&(window.scrollY||window.scrollX))fixView()})}
 addEventListener("pageshow",()=>setTimeout(fixView,100));
@@ -1322,8 +1330,17 @@ document.querySelectorAll(".k").forEach(el=>{
   el.addEventListener("pointerdown",down);el.addEventListener("pointerup",up);
   el.addEventListener("pointercancel",up);el.addEventListener("lostpointercapture",up);
 });
+// un doigt posé juste à côté d'un bouton (dans l'espace entre deux boutons, ou un peu au bord) compte pour le bouton le plus proche
+const BHELD={};
+{const BC=document.getElementById("bcatch");
+  const near=e=>{let best=null,bd=1e9;for(const el of document.querySelectorAll(".k")){const b=el.getBoundingClientRect();if(!b.width)continue;
+      const d=Math.hypot(e.clientX-(b.left+b.right)/2,e.clientY-(b.top+b.bottom)/2)-(b.width+b.height)/4;if(d<bd){bd=d;best=el}}
+    return bd<=14*padSc?best:null};
+  BC.addEventListener("pointerdown",e=>{e.preventDefault();const el=near(e);if(!el)return;audio();try{BC.setPointerCapture(e.pointerId)}catch(_){}BHELD[e.pointerId]=el;el.classList.add("down");press(el.dataset.k)});
+  const end=e=>{const el=BHELD[e.pointerId];if(!el)return;delete BHELD[e.pointerId];el.classList.remove("down");release(el.dataset.k)};
+  BC.addEventListener("pointerup",end);BC.addEventListener("pointercancel",end);BC.addEventListener("lostpointercapture",end)}
 // croix de flèches : une seule zone tactile, on peut glisser d'une flèche à l'autre ; en haut à gauche / à droite = saut en diagonale
-let padId=null,padSc=1;
+let padId=null,padSc=1,PADB=null,PADCORE=true;
 function rootXY(e){return ROT?[innerHeight-e.clientY,e.clientX]:[e.clientX,e.clientY]}
 function setDir(k,on){if(on){if(!keys[k])press(k)}else if(keys[k])release(k)}
 function padShow(){const L=keys.left,Rr=keys.right,U=keys.up,t=(id,v)=>{const e=document.getElementById(id);if(e)e.classList.toggle("down",!!v)};
@@ -1333,16 +1350,27 @@ function padShow(){const L=keys.left,Rr=keys.right,U=keys.up,t=(id,v)=>{const e=
 // (le pouce qui tremble sur une frontière ne relâche/represse plus ◀, ce qui faisait un dash arrière au lieu de la garde).
 let PADZ=null;
 function padZone(lx,yb){if(yb>108){if(lx<62)return "UL";if(lx>154)return "UR";return "U"}if(yb>78&&lx>=62&&lx<=154)return "U";return lx<108?"L":"R"}
-function padMove(e){if(e.pointerId!==padId)return;const [x,y]=rootXY(e),lx=(x-14)/padSc,yb=(RH-10-y)/padSc;
+function padBox(){const b=document.getElementById("lpad").getBoundingClientRect();PADB=ROT?[1,b.bottom,b.right,(b.height/216)||1]:[0,b.left,b.bottom,(b.width/216)||1]}
+function padLoc(e){if(!PADB)padBox();const B=PADB;return [(B[0]?B[1]-e.clientY:e.clientX-B[1])/B[3],(B[0]?B[2]-e.clientX:B[2]-e.clientY)/B[3]]}
+const padInCore=(lx,yb)=>lx>=-2&&lx<=218&&yb>=-2&&yb<=160; // sur les flèches elles-mêmes (le reste est la marge autour)
+function padMove(e){if(e.pointerId!==padId)return;const [lx,yb]=padLoc(e);PADCORE=padInCore(lx,yb);
   let z=padZone(lx,yb);
   if(PADZ&&z!==PADZ){const H=7;if([padZone(lx+H,yb),padZone(lx-H,yb),padZone(lx,yb+H),padZone(lx,yb-H)].includes(PADZ))z=PADZ}
   PADZ=z;
   setDir("left",z==="L"||z==="UL");setDir("right",z==="R"||z==="UR");setDir("up",z[0]==="U");padShow()}
 {const DP=document.getElementById("dpad");
-  DP.addEventListener("pointerdown",e=>{e.preventDefault();audio();if(padId!==null)return;padId=e.pointerId;PADZ=null;try{DP.setPointerCapture(e.pointerId)}catch(_){}padMove(e)});
+  DP.addEventListener("pointerdown",e=>{e.preventDefault();audio();
+    if(padId!==null){let live=true;try{live=DP.hasPointerCapture(padId)}catch(_){}
+      // un doigt tient déjà la croix : il garde la main. Deux exceptions : il a disparu sans prévenir, ou bien il est posé dans la marge
+      // (bord de la main, pouce au repos) et le nouveau doigt, lui, vise une flèche.
+      if(live){if(PADCORE)return;const q=padLoc(e);if(!padInCore(q[0],q[1]))return}}
+    padId=e.pointerId;PADZ=null;padBox();try{DP.setPointerCapture(e.pointerId)}catch(_){}padMove(e)});
   DP.addEventListener("pointermove",e=>{e.preventDefault();padMove(e)});
   const end=e=>{if(e.pointerId!==padId)return;padId=null;setDir("left",false);setDir("right",false);setDir("up",false);padShow()};
   DP.addEventListener("pointerup",end);DP.addEventListener("pointercancel",end);DP.addEventListener("lostpointercapture",end)}
+// sécurité : si le jeu passe en arrière-plan avec un doigt posé, on relâche tout (aucune touche ne reste coincée)
+function inputReset(){padId=null;PADZ=null;for(const k in keys)if(keys[k])release(k);for(const id in BHELD)delete BHELD[id];for(const e of document.querySelectorAll(".k.down"))e.classList.remove("down");padShow()}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)inputReset()});addEventListener("blur",inputReset);
 const KM={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",KeyA:"left",KeyQ:"left",KeyD:"right",KeyW:"up",KeyZ:"up",KeyJ:"lp",KeyK:"hp",KeyL:"sp",KeyI:"su",KeyU:"th",Space:"up"};
 addEventListener("keydown",e=>{if(e.target&&e.target.tagName==="INPUT")return;const k=KM[e.code];if(k){e.preventDefault();audio();if(!e.repeat)press(k);padShow()}});
 addEventListener("keyup",e=>{if(e.target&&e.target.tagName==="INPUT")return;const k=KM[e.code];if(k){release(k);padShow()}});
