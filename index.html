@@ -142,7 +142,8 @@ canvas#c{position:absolute;display:block}
 .onHead .m{font-weight:800;letter-spacing:.3em;font-size:13px;color:var(--acc);text-transform:uppercase}
 .onPanel{display:none;flex:1;min-height:0}
 .onPanel.on{display:flex}
-#onEntry{flex-direction:column;justify-content:center;gap:14px}
+#onEntry{flex-direction:column;justify-content:center;gap:10px}
+.onCols{display:flex;gap:14px;align-items:stretch;width:100%;max-width:900px}.onCols .onBox{flex:1;width:auto;min-width:0;justify-content:flex-start}
 #onName{flex-direction:column;justify-content:flex-start;gap:10px;padding-top:2%}
 .onBox{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:12px 18px;background:rgba(12,12,16,.62);width:min(560px,92%);box-sizing:border-box}
 .onLbl{font-weight:800;letter-spacing:.25em;font-size:13px;text-transform:uppercase;color:var(--yel)}
@@ -170,6 +171,8 @@ canvas#c{position:absolute;display:block}
 .lbList{display:flex;flex-direction:column;gap:3px;overflow-y:auto;touch-action:pan-y;min-height:0;flex:1}
 .lbRow{display:flex;align-items:center;gap:10px;background:rgba(12,12,16,.62);padding:4px 12px;flex-shrink:0}
 .lbRow.me{box-shadow:inset 3px 0 0 var(--acc);background:rgba(40,20,18,.75)}
+.lbRow.away{opacity:.45}
+.onStats{font-size:14px;line-height:1.4;background:rgba(12,12,16,.62);padding:7px 14px;max-width:900px;box-sizing:border-box}.onStats small{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--yel);text-transform:uppercase}.onStats b{font-family:var(--T);font-weight:400;font-size:19px;color:var(--yel)}
 .lbRow i{font-style:normal;font-family:var(--T);font-size:18px;width:1.1em;text-align:center;color:var(--yel)}
 .lbRow canvas{clip-path:polygon(14% 0,100% 0,86% 100%,0 100%);flex-shrink:0}
 .lbRow .nm{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.1}
@@ -257,7 +260,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V3.2</div>
+  <div class="ver">V3.3</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -271,7 +274,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V3.2</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V3.3</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -316,7 +319,7 @@ canvas#c{position:absolute;display:block}
 <div class="screen" id="sOnline">
   <div class="onHead"><span class="t">Salon</span><span class="m" id="onMode">En ligne</span></div>
   <div class="onPanel" id="onEntry">
-    <div class="onBox">
+    <div class="onCols"><div class="onBox">
       <div class="onLbl">Tu lances la partie</div>
       <button class="btn" id="bCreate">Créer un salon</button>
       <div class="onHint">Tu auras un code de 4 caractères à donner à tes potes.</div>
@@ -324,7 +327,8 @@ canvas#c{position:absolute;display:block}
     <div class="onBox">
       <div class="onLbl">Un pote t'a donné un code</div>
       <div class="onRow"><input class="inp" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"><button class="btn" id="bJoin">Rejoindre</button></div>
-    </div>
+    </div></div>
+    <div class="onStats" id="onStats"></div>
     <div class="onMsg" id="onMsg"></div>
     <div><button class="btn ghost" id="bOnBack">Retour</button></div>
   </div>
@@ -472,7 +476,12 @@ const cv=document.getElementById("c"),ctx=cv.getContext("2d");
 const OC=document.createElement("canvas"),octx=OC.getContext("2d");
 let VS=1,DPR=1,RW=0,RH=0,ROT=false,RSCALE=1;
 const UI_W=800,UI_H=380;let UIK=1;
+// clavier ouvert (saisie du nom ou du code) : on ne rétrécit pas tout le jeu, on garde la dernière taille normale
+let VIEW_OK=null;const kbOpen=()=>{const a=document.activeElement;return !!a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA")};
+function fixView(){try{if(window.scrollX||window.scrollY)window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}catch(e){}resize()}
 function resize(){
+  if(kbOpen()&&VIEW_OK&&(innerWidth<VIEW_OK.w*0.85||innerHeight<VIEW_OK.h*0.85))return;
+  if(!kbOpen())VIEW_OK={w:innerWidth,h:innerHeight};
   DPR=Math.min(window.devicePixelRatio||1,2)*RSCALE;
   ROT=innerHeight>innerWidth;
   RW=ROT?innerHeight:innerWidth;RH=ROT?innerWidth:innerHeight;
@@ -484,7 +493,7 @@ function resize(){
   cv.style.width=W*VS+"px";cv.style.height=H*VS+"px";
   cv.style.left=(RW-W*VS)/2+"px";cv.style.top=(RH-H*VS)/2+"px";
   // zone sûre (encoche, barre d'accueil de l'iPhone)
-  let SA={l:0,r:0,t:0,b:0};try{const pr=getComputedStyle($("saProbe"));SA={l:parseFloat(pr.paddingLeft)||0,r:parseFloat(pr.paddingRight)||0,t:parseFloat(pr.paddingTop)||0,b:parseFloat(pr.paddingBottom)||0};if(ROT)SA={l:SA.t,r:SA.b,t:SA.r,b:SA.l}}catch(e){}
+  let SA={l:0,r:0,t:0,b:0};try{const pr=getComputedStyle($("saProbe"));SA={l:parseFloat(pr.paddingLeft)||0,r:parseFloat(pr.paddingRight)||0,t:parseFloat(pr.paddingTop)||0,b:parseFloat(pr.paddingBottom)||0};if(ROT)SA={l:SA.b,r:SA.t,t:SA.l,b:SA.r}}catch(e){}
   // écrans (menus) : une seule mise en page de référence, agrandie ou réduite pour tenir en entier sur chaque écran
   const aw=Math.max(200,RW-SA.l-SA.r),ah=Math.max(150,RH-SA.t-SA.b),k=Math.max(0.5,Math.min(1.7,aw/UI_W,ah/UI_H));UIK=k;
   for(const sc of document.querySelectorAll(".screen")){const st=sc.style;st.left=SA.l+"px";st.top=SA.t+"px";st.right="auto";st.bottom="auto";st.width=(aw/k)+"px";st.height=(ah/k)+"px";
@@ -498,7 +507,10 @@ function resize(){
   if(document.getElementById("sSelect").classList.contains("on"))sizeCanvas($("pv"));
   sizeMBG();
 }
-addEventListener("resize",resize);addEventListener("orientationchange",()=>setTimeout(resize,200));
+addEventListener("resize",resize);addEventListener("orientationchange",()=>{setTimeout(fixView,200);setTimeout(fixView,700)});
+document.addEventListener("focusout",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")){setTimeout(fixView,80);setTimeout(fixView,400);setTimeout(fixView,1000)}});
+if(window.visualViewport){visualViewport.addEventListener("resize",()=>{if(!kbOpen())fixView()});visualViewport.addEventListener("scroll",()=>{if(!kbOpen()&&(window.scrollY||window.scrollX))fixView()})}
+addEventListener("pageshow",()=>setTimeout(fixView,100));
 // installé sur l'écran d'accueil, le jeu est déjà en plein écran ; sinon on le demande au premier appui
 if("serviceWorker" in navigator&&location.protocol==="https:"&&window.top===window.self)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 function tryLandscape(){
@@ -4222,7 +4234,7 @@ function drawHUD(){
   g.textAlign="center";g.font=`46px ${FT}`;g.fillStyle=t<=10&&!G.training?"#ff3b1f":"#f2ede4";
   g.fillText(G.training?"∞":String(t).padStart(2,"0"),W/2,62);
   g.font=`800 11px ${FU}`;g.fillStyle="rgba(242,237,228,.55)";g.fillText(G.training?"ENTRAÎNEMENT":"ROUND "+G.round,W/2,78);
-  document.getElementById("supBtn").classList.toggle("ready",G.p1.meter>=100);
+  document.getElementById("supBtn").classList.toggle("ready",meF().meter>=100);
 }
 function drawAnnounce(g){
   for(const t of fx.texts){
@@ -4916,6 +4928,8 @@ function startRound(){
   voxStopVS();G.introLen=1;if(!G.training){const vk=introVox();G.introLen=Math.max(80,Math.ceil((VOXEND[vk]+0.18)*60));announce(vk==="final_round"?"FINAL ROUND":"ROUND "+G.round,Math.min(G.introLen,96));SFX.announce();vox(vk)}
 }
 let slowAcc=0;
+// le combattant de CE téléphone (en ligne, on peut être le joueur de droite)
+function meF(){return G.online&&G.mySide===1?G.p2:G.p1}
 function step(){
   TICK++;
   for(const k in pressed)if(pressed[k]>0)pressed[k]--;
@@ -5134,7 +5148,7 @@ function render(){
   g.save();g.globalCompositeOperation="soft-light";g.fillStyle=A.grade;g.fillRect(0,0,W,H);g.restore();
   if(fx.lines>0){g.save();g.strokeStyle="rgba(242,237,228,.45)";g.lineWidth=2;for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,r1=260+Math.random()*80;g.beginPath();g.moveTo(W/2+Math.cos(a)*r1,H/2+Math.sin(a)*r1*0.6);g.lineTo(W/2+Math.cos(a)*(r1+200),H/2+Math.sin(a)*(r1+200)*0.6);g.stroke()}g.restore()}
   g.drawImage(vignette(),0,0,W,H);
-  if(G.p1.hp<250&&G.p1.hp>0&&G.phase==="fight"){ // le joueur est à bout : bords rouges qui battent
+  if(meF().hp<250&&meF().hp>0&&G.phase==="fight"){ // le joueur est à bout : bords rouges qui battent
     // liseré rouge discret sur les bords, qui bat doucement
     const beat=Math.pow(Math.max(0,Math.sin(G.frame*0.13)),6);
     g.save();g.translate(W/2,H/2);g.scale(W/H,1);
@@ -5394,12 +5408,15 @@ img(CHLOE_FACE);resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="3.2",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="3.3",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 // plusieurs serveurs publics en même temps : chaque message part sur tous ceux qui répondent (si un réseau en bloque un, les autres prennent le relais)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"],["wss://public.cloud.shiftr.io",{u:"public",p:"public"}]];
 try{const q=new URLSearchParams(location.search).get("broker");if(q)NETB.splice(0,NETB.length,...q.split(",").map(u=>[u]))}catch(e){}
 const NET_ALPHA="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",NET_TOPIC="fighterkhey/v1/",NET_MAX={vs:2,koth:8};
+// absent = appli en arrière-plan ou plus de nouvelles depuis 6 s ; retiré du salon seulement après 10 min ;
+// après 30 min d'absence, la session (et ses victoires/défaites) est terminée ; en combat, 45 s d'absence = abandon
+const NET_AWAY_MS=6000,NET_GONE_MS=600000,NET_EXPIRE_MS=1800000,NET_FF_MS=45000;
 const TXE=new TextEncoder(),TXD=new TextDecoder();
 function mqLen(n){const a=[];do{let b=n%128;n=Math.floor(n/128);if(n>0)b|=128;a.push(b)}while(n>0);return a}
 function mqStr(s){const b=TXE.encode(s),a=[b.length>>8,b.length&255];for(let i=0;i<b.length;i++)a.push(b[i]);return a}
@@ -5455,7 +5472,7 @@ function netConnectAll(){return new Promise(res=>{const M=new MMQ();let left=NET
 
 /* ---------- état réseau ---------- */
 const NET={mq:null,code:null,topic:null,me:Math.random().toString(36).slice(2,8),name:"",host:false,mode:"vs",lob:null,ch:0,ready:false,
-  rtt:80,seq:0,seen:new Set(),seenQ:[],joined:false,lastL:0,tick:null,beat:0,full:false,waitL:null,splashT:null,lastLob:null,bye:false};
+  rtt:80,seq:0,seen:new Set(),seenQ:[],away:{},claim:null,reco:false,joined:false,lastL:0,tick:null,beat:0,full:false,waitL:null,splashT:null,lastLob:null,bye:false};
 try{NET.name=localStorage.getItem("fk_name")||"";const c=+localStorage.getItem("fk_ch");if(c>=0&&ROSTER[c])NET.ch=c}catch(e){}
 let LS=null,RS=1,NLATCH=0;
 function nrand(){RS=(Math.imul(RS,1664525)+1013904223)>>>0;return RS/4294967296}
@@ -5483,12 +5500,14 @@ function netAttach(mq,code){
 function netCodeFor(){let c="";for(let i=0;i<4;i++)c+=NET_ALPHA[(Math.random()*NET_ALPHA.length)|0];return c}
 function netClose(){clearInterval(NET.tick);NET.tick=null;if(NET.mq)NET.mq.close();NET.mq=null;NET.joined=false;NET.host=false;NET.ready=false;NET.full=false}
 let netLostTry=0;
-async function netLost(){ // connexion coupée : on retente avec le même code
-  if(!NET.code||NET.bye)return;const code=NET.code;
-  for(netLostTry=0;netLostTry<3&&!NET.bye;netLostTry++){
-    const mq=await netConnectAll();if(mq){if(NET.bye){mq.close();return}netAttach(mq,code);netSend({t:"h",rtt:NET.rtt});return}
-    await new Promise(r=>setTimeout(r,1500))}
-  if(!NET.bye)netQuit("La connexion au serveur est coupée.")
+async function netLost(){ // connexion coupée : on retente (pendant 1 min) avec le même code, sans quitter le salon
+  if(!NET.code||NET.bye||NET.reco)return;if(document.hidden){NET.needReco=true;return}
+  const code=NET.code;NET.reco=true;
+  try{for(netLostTry=0;netLostTry<15&&!NET.bye&&NET.code===code;netLostTry++){
+    const mq=await netConnectAll();if(mq){if(NET.bye||NET.code!==code){mq.close();return}netAttach(mq,code);netSend({t:"h",rtt:Math.round(NET.rtt),aw:document.hidden?1:0});if(NET.host)hostBroadcast();return}
+    await new Promise(r=>setTimeout(r,3000))}}
+  finally{NET.reco=false}
+  if(!NET.bye&&NET.code===code)netQuit("La connexion au serveur est coupée.")
 }
 
 /* ---------- messages ---------- */
@@ -5496,11 +5515,15 @@ function netOnMsg(s){
   let m;try{m=JSON.parse(s)}catch(e){return}
   if(m.q!=null){const k=m.id+":"+m.q;if(NET.seen.has(k))return;NET.seen.add(k);NET.seenQ.push(k);if(NET.seenQ.length>4000)NET.seen.delete(NET.seenQ.shift())} // déjà reçu par un autre serveur
   if(m.id===NET.me){if(m.t==="p"&&m.ts){const r=performance.now()-m.ts;NET.rtt=NET.rtt*0.7+r*0.3}return}
-  if(NET.host&&NET.lob){const mm=netMem(m.id);if(mm)mm.seen=nowMs()}
+  if(NET.host&&NET.lob){const mm=netMem(m.id);if(mm){const was=netAway(mm);mm.seen=nowMs();if(m.t==="h"&&m.aw!=null)mm.aw=m.aw?1:0;if(was&&!netAway(mm))hostBroadcast()}}
   switch(m.t){
+    case "aw":NET.away[m.id]=m.a?nowMs():0;
+      if(NET.host&&NET.lob){const mm=netMem(m.id);if(mm){mm.aw=m.a?1:0;if(m.a)mm.r=0;hostBroadcast();hostCheckStart()}}else netRenderLobby();return;
     case "L":
       if(NET.host)return;
-      NET.lastL=nowMs();NET.lob=m.l;NET.lastLob=m.l;
+      NET.lastL=nowMs();NET.lob=m.l;NET.lastLob=m.l;NET.away[m.l.host]=0;
+      if(NET.claim&&(!m.l.m||m.l.m.mid!==NET.claim.mid))NET.claim=null;
+      if(LS&&LS.live&&LS.side>=0&&G&&G.online&&m.l.last&&m.l.last.mid===LS.mid&&(!m.l.m||m.l.m.mid!==LS.mid)){netEndMatch(m.l.last.w===G.online.a?0:1,!!m.l.last.ff)}
       if(NET.waitL){const f=NET.waitL;NET.waitL=null;f(m.l)}
       if(NET.joined){if(!netMem(NET.me)){netQuit("Tu n'es plus dans le salon.");return}netRenderLobby()}
       else if(NET.joinWait&&netMem(NET.me)){const f=NET.joinWait;NET.joinWait=null;f(true)}
@@ -5522,11 +5545,12 @@ function netOnMsg(s){
       if(m.pv!==NET_PV){netSend({t:"full",to:m.id,why:"pv"});return}
       let mm=netMem(m.id);
       if(!mm){if(L.mem.length>=NET_MAX[L.mode]){netSend({t:"full",to:m.id});return}
-        mm={id:m.id,n:netCleanName(m.n),c:m.c|0,r:0,w:0,l:0,s:0,b:0,rtt:80,seen:nowMs()};L.mem.push(mm);L.q.push(m.id);SFX.select()}
+        mm={id:m.id,n:netCleanName(m.n),c:m.c|0,r:0,w:0,l:0,s:0,b:0,rtt:80,seen:nowMs(),aw:0};L.mem.push(mm);L.q.push(m.id);SFX.select()}
       else{mm.n=netCleanName(m.n);mm.c=m.c|0}
       hostBroadcast();return}
-    case "u":{const mm=netMem(m.id);if(!mm)return;if(m.n!=null)mm.n=netCleanName(m.n);if(m.c!=null&&ROSTER[m.c])mm.c=m.c|0;if(m.r!=null)mm.r=m.r?1:0;hostBroadcast();hostMaybeStart();return}
+    case "u":{const mm=netMem(m.id);if(!mm)return;if(m.n!=null)mm.n=netCleanName(m.n);if(m.c!=null&&ROSTER[m.c])mm.c=m.c|0;if(m.r!=null)mm.r=m.r?1:0;hostBroadcast();hostCheckStart();return}
     case "h":{const mm=netMem(m.id);if(mm&&m.rtt)mm.rtt=m.rtt;return}
+    case "C":if(L.m&&L.m.mid===m.mid){const side=m.id===L.m.a?0:m.id===L.m.b?1:-1;if(side>=0&&m.win===side)hostResult(m.mid,m.win,true)}return;
     case "R":hostResult(m.mid,m.win,false);return;
     case "F":if(L.m&&L.m.mid===m.mid){const side=m.id===L.m.a?0:m.id===L.m.b?1:-1;if(side>=0)hostResult(m.mid,1-side,true)}return;
     case "Q":hostRemove(m.id);return;
@@ -5537,41 +5561,51 @@ function netCleanName(n){n=String(n||"").replace(/[<>]/g,"").replace(/\s+/g," ")
 
 /* ---------- hôte ---------- */
 function hostInit(){NET.lob={pv:NET_PV,mode:NET.mode,host:NET.me,st:"lobby",mem:[],q:[],m:null,cd:0,king:null,mid:0,last:null};
-  NET.lob.mem.push({id:NET.me,n:NET.name,c:NET.ch,r:0,w:0,l:0,s:0,b:0,rtt:NET.rtt,seen:nowMs()});NET.lob.q.push(NET.me);NET.lastLob=NET.lob}
+  NET.lob.mem.push({id:NET.me,n:NET.name,c:NET.ch,r:0,w:0,l:0,s:0,b:0,rtt:NET.rtt,seen:nowMs(),aw:0});NET.lob.q.push(NET.me);NET.lastLob=NET.lob}
+// côté hôte : ce joueur est-il absent (appli en arrière-plan, ou plus de nouvelles) ?
+function netAway(x){if(!x)return true;if(x.id===NET.me)return !!x.aw;return !!x.aw||nowMs()-x.seen>NET_AWAY_MS}
+// les deux prochains joueurs présents dans la file
+function hostPair(){const L=NET.lob,pr=L.q.filter(id=>!netAway(netMem(id)));return pr.length>=2?[pr[0],pr[1]]:null}
+// un combat ne part que si les deux prochains joueurs sont là ET ont appuyé sur Prêt (3 s de compte à rebours)
+function hostCheckStart(){const L=NET.lob;if(!L||L.st==="match")return;
+  const pr=hostPair(),ok=!!pr&&pr.every(id=>netMem(id).r);
+  if(ok){const k=pr.join(",");if(L.st!=="cd"||L.cdPair!==k){L.st="cd";L.cdPair=k;L.cdEnd=nowMs()+3000;hostBroadcast()}}
+  else if(L.st==="cd"){L.st="lobby";L.cdEnd=0;L.cdPair=null;hostBroadcast()}}
 function hostPub(){const L=NET.lob;return {pv:L.pv,mode:L.mode,host:L.host,st:L.st,q:L.q,m:L.m,cd:L.cd,king:L.king,last:L.last,
-  mem:L.mem.map(x=>({id:x.id,n:x.n,c:x.c,r:x.r,w:x.w,l:x.l,s:x.s,b:x.b}))}}
+  mem:L.mem.map(x=>({id:x.id,n:x.n,c:x.c,r:x.r,w:x.w,l:x.l,s:x.s,b:x.b,aw:netAway(x)?1:0}))}}
 function hostBroadcast(){if(!NET.lob)return;NET.lob.cd=NET.lob.cdEnd?Math.max(0,Math.ceil((NET.lob.cdEnd-nowMs())/1000)):0;netSend({t:"L",l:hostPub()});NET.lastLob=NET.lob;NET.beat=nowMs();netRenderLobby()}
 function hostRemove(id){const L=NET.lob;if(!L||id===NET.me)return;const i=L.mem.findIndex(x=>x.id===id);if(i<0)return;
   if(L.m&&(L.m.a===id||L.m.b===id))hostResult(L.m.mid,L.m.a===id?1:0,true);
   L.mem.splice(i,1);L.q=L.q.filter(x=>x!==id);if(L.king===id)L.king=null;
-  if(L.mode==="koth"&&L.st==="cd"&&L.mem.length<2){L.st="lobby";L.cdEnd=0}
-  hostBroadcast()}
-function hostMaybeStart(){const L=NET.lob;if(L.mode!=="vs"||L.st!=="lobby"||L.mem.length<2)return;if(L.mem.every(x=>x.r))hostStart(L.q[0],L.q[1])}
+  hostBroadcast();hostCheckStart()}
 function hostStart(aId,bId){const L=NET.lob,A=netMem(aId),B=netMem(bId);if(!A||!B)return;
   const oneWay=((A.id===NET.me?NET.rtt:A.rtt||90)+(B.id===NET.me?NET.rtt:B.rtt||90))/2;
   const dl=Math.max(2,Math.min(4,Math.round(oneWay/16.67*0.45)));
   L.mid++;const m={mid:L.mid,a:aId,b:bId,ca:A.c,cb:B.c,na:A.n,nb:B.n,ar:(Math.random()*ARENAS.length)|0,sd:((Math.random()*4294967295)>>>0)||7,dl,mode:L.mode};
-  L.st="match";L.m=m;L.cdEnd=0;hostBroadcast();netSend({t:"S",m});netStartMatch(m)}
+  L.st="match";L.m=m;L.cdEnd=0;L.cdPair=null;hostBroadcast();netSend({t:"S",m});netStartMatch(m)}
 function hostResult(mid,ws,ff){const L=NET.lob;if(!L||!L.m||L.m.mid!==mid)return;
   const m=L.m,wid=ws===0?m.a:m.b,lid=ws===0?m.b:m.a,Wm=netMem(wid),Lm=netMem(lid);
   if(Wm){Wm.w++;Wm.s++;Wm.b=Math.max(Wm.b,Wm.s)}if(Lm){Lm.l++;Lm.s=0}
   L.last={mid,w:wid,l:lid,wn:m[ws===0?"na":"nb"],ln:m[ws===0?"nb":"na"],ff:ff?1:0};L.m=null;
   if(ff)netSend({t:"RR",mid,win:ws});
-  if(L.mode==="koth"){L.q=L.q.filter(x=>x!==wid&&x!==lid);if(Wm)L.q.unshift(wid);if(Lm)L.q.push(lid);L.king=Wm?wid:null;
-    if(L.mem.length>=2){L.st="cd";L.cdEnd=nowMs()+9000}else{L.st="lobby";L.cdEnd=0}}
-  else{L.st="lobby";for(const x of L.mem)x.r=0;NET.ready=false}
+  if(L.mode==="koth"){L.q=L.q.filter(x=>x!==wid&&x!==lid);if(Wm)L.q.unshift(wid);if(Lm)L.q.push(lid);L.king=Wm?wid:null}
+  // plus de relance automatique : les deux joueurs doivent rappuyer sur Prêt (et peuvent changer de perso)
+  L.st="lobby";L.cdEnd=0;L.cdPair=null;for(const x of [Wm,Lm])if(x)x.r=0;if(wid===NET.me||lid===NET.me)NET.ready=false;
   hostBroadcast();
   if(ff&&LS&&LS.live&&LS.mid===mid)netEndMatch(ws,true)}
 function hostTick(){const L=NET.lob,t=nowMs();
-  for(const x of L.mem.slice())if(x.id!==NET.me&&t-x.seen>9000)hostRemove(x.id);
-  if(L.st==="cd"&&L.cdEnd){if(t>=L.cdEnd){if(L.mem.length>=2&&L.q.length>=2)hostStart(L.q[0],L.q[1]);else{L.st="lobby";L.cdEnd=0;hostBroadcast()}return}}
+  for(const x of L.mem.slice())if(x.id!==NET.me&&t-x.seen>NET_GONE_MS)hostRemove(x.id);
+  for(const x of L.mem)if(x.r&&netAway(x)){x.r=0;hostBroadcast()}
+  hostCheckStart();
+  if(L.st==="cd"&&L.cdEnd&&t>=L.cdEnd){const pr=hostPair();if(pr&&pr.every(id=>netMem(id).r))hostStart(pr[0],pr[1]);else{L.st="lobby";L.cdEnd=0;L.cdPair=null;hostBroadcast()}return}
   if(t-NET.beat>(L.st==="cd"?1000:2000))hostBroadcast()}
 function netTick(){
   if(!NET.mq)return;const t=nowMs();
   if(t-(NET.lastPing||0)>3000){NET.lastPing=t;netSend({t:"p",ts:performance.now()})}
   if(NET.host&&NET.lob){hostTick();return}
-  if(NET.joined){if(t-(NET.lastH||0)>2000){NET.lastH=t;netSend({t:"h",rtt:Math.round(NET.rtt)})}
-    if(t-NET.lastL>10000)netQuit("L'hôte ne répond plus : le salon est fermé.")}
+  if(NET.claim&&t-NET.claim.t>2000){NET.claim.t=t;netSend({t:"C",mid:NET.claim.mid,win:NET.claim.win})}
+  if(NET.joined){if(t-(NET.lastH||0)>2000){NET.lastH=t;netSend({t:"h",rtt:Math.round(NET.rtt),aw:document.hidden?1:0})}
+    if(t-NET.lastL>NET_GONE_MS)netQuit("L'hôte ne répond plus : le salon est fermé.");else if(t-NET.lastL>NET_AWAY_MS&&!(LS&&LS.live))netRenderLobby()}
 }
 
 /* ---------- rollback (comme les vrais jeux de combat en ligne) ----------
@@ -5688,17 +5722,23 @@ function netStep(){
 function netBehind(){const L=LS;if(L.side>=0)return (L.last[1-L.side]-L.delay)-L.frame;return Math.min(L.last[0],L.last[1])-L.frame-3}
 function netLoop(){
   const FR=1000/60;let st=0;
+  // jeu en arrière-plan : ce téléphone se met en pause (l'adversaire attend au lieu de taper sur un perso immobile)
+  if(document.hidden){acc=0;if(LS)LS.lastLoop=performance.now();return}
   if(LS&&LS.side>=0){const L=LS;
     if(L.rbFrom!=null)rbRewind(L);
     if(L.advS!=null&&L.advS>1&&acc>=FR&&(++L.slowC%5===0))acc-=FR; // on est en avance : on ralentit un tout petit peu pour rester calés
     while(acc>=FR&&LS===L&&L.live){if(!netStep()){acc=0;break}acc-=FR;st++}
-    if(LS===L&&L.live)rbHashes(L)}
+    if(LS===L&&L.live)rbHashes(L);
+    // temps passé à attendre l'adversaire, compté seulement quand ce téléphone tourne (une mise en veille ne compte pas)
+    const pn=performance.now(),dt=Math.min(100,pn-(L.lastLoop||pn));L.lastLoop=pn;L.stallAcc=L.stallT?(L.stallAcc||0)+dt:0}
   else{
   while(acc>=FR){if(!netStep()){acc=0;break}acc-=FR;st++}
   if(LS&&LS.live){const b=netBehind();if(b>1&&st<3){netStep();if(b>5)netStep()}}}
-  if(LS&&LS.live&&LS.stallT&&nowMs()-LS.stallT>15000){LS.live=false;netSplash("Connexion perdue","Le combat est annulé.","#f2ede4",true)}
+  if(LS&&LS.live&&LS.side>=0&&LS.stallT&&!LS.claimed&&(LS.stallAcc||0)>NET_FF_MS){LS.claimed=true;netClaim(LS.mid,LS.side)}
 }
 // appelé par step() quand un joueur a gagné 2 manches
+// l'adversaire a disparu trop longtemps : victoire par abandon (l'hôte valide ; on reste dans le salon)
+function netClaim(mid,ws){if(NET.host)hostResult(mid,ws,true);else{NET.claim={mid,win:ws,t:nowMs()};netSend({t:"C",mid,win:ws});netEndMatch(ws,true)}}
 function netMatchOver(w){
   if(!LS||!LS.live||LS.overDone)return;LS.overDone=true;
   const ws=w.side;if(LS.side>=0){netFlush();netSend({t:"R",mid:LS.mid,win:ws})}
@@ -5706,17 +5746,18 @@ function netMatchOver(w){
   netEndMatch(ws,false);
 }
 function netEndMatch(ws,ff){
-  const m=G&&G.online;if(!LS)return;LS.live=false;if(G){G.phase="over";G.imp=0}superFreeze=0;paused=true; // le décor se fige derrière le résultat
+  const m=G&&G.online;if(!LS||LS.ended)return;LS.ended=true;LS.live=false;
+  if(m&&LS.side>=0)careerAdd(LS.side===ws,LS.side===0?m.ca:m.cb);if(G){G.phase="over";G.imp=0}superFreeze=0;paused=true; // le décor se fige derrière le résultat
   const wn=m?(ws===0?m.na:m.nb):"",wd=m?ROSTER[ws===0?m.ca:m.cb]:null,me=LS.side;
   musicStop();
-  if(me===ws){musicPlay("victory");vox("you_win");netSplash(ff?"Victoire":"Victoire",ff?"Ton adversaire a abandonné.":"Bien joué "+wn+" !","#ff3b1f")}
+  if(me===ws){musicPlay("victory");vox("you_win");netSplash("Victoire",ff?"Ton adversaire a abandonné (ou a quitté le jeu trop longtemps).":"Bien joué "+wn+" !","#ff3b1f")}
   else if(me>=0){musicPlay("defeat");vox("you_lose");netSplash(ff?"Abandon":"Défaite",wn+(wd?" ("+wd.name+")":"")+" remporte le combat.","#f2ede4")}
   else{musicPlay("victory");vox("winner");netSplash(wn+" gagne",(wd?wd.name+" · ":"")+(ff?"par abandon":"deux manches gagnantes"),"#ffcf33")}
 }
 function netSplash(title,sub,col,back){
   $("nrT").textContent=title;$("nrT").style.color=col||"";$("nrS").textContent=sub||"";show("sNetRes");root.classList.remove("spec");
   clearTimeout(NET.splashT);NET.splashT=setTimeout(()=>{if(LS&&LS.live)return;G=null;LS=null;paused=false;
-    if(NET.mq&&NET.joined){musicPlay("select");netRenderLobby();onPanel("onLobby");show("sOnline")}else show("sMenu")},back?2500:3600);
+    if(NET.mq&&NET.joined){musicPlay("select");netRenderLobby();onPanel("onLobby");show("sOnline")}else{renderCareer();show("sMenu")}},back?2500:3600);
 }
 function netForfeit(){if(!LS||!LS.live)return;const ws=1-LS.side;
   if(NET.host)hostResult(LS.mid,ws,true);else{netSend({t:"F",mid:LS.mid});netEndMatch(ws,true)}}
@@ -5725,7 +5766,15 @@ function netForfeit(){if(!LS||!LS.live)return;const ws=1-LS.side;
 function onPanel(id){for(const p of ["onEntry","onName","onLobby"])$(p).classList.toggle("on",p===id)}
 function onMsg(t,err){const e=$("onMsg");e.textContent=t||"";e.classList.toggle("err",!!err)}
 function onModeLabel(){$("onMode").textContent=NET.mode==="koth"?"Roi de la colline":"En ligne · 1 contre 1"}
-function onlineOpen(mode){NET.mode=mode;NET.bye=false;onModeLabel();onMsg("");$("codeIn").value="";onPanel("onEntry");musicPlay("select");show("sOnline")}
+function onlineOpen(mode){NET.mode=mode;NET.bye=false;onModeLabel();onMsg("");$("codeIn").value="";renderCareer();onPanel("onEntry");musicPlay("select");show("sOnline")}
+// tes victoires/défaites en ligne, toutes sessions confondues (gardées sur ce téléphone)
+function careerGet(){const z={w:0,l:0,s:0,b:0,ch:{}};try{return Object.assign(z,JSON.parse(localStorage.getItem("fk_online")||"{}"))}catch(e){return z}}
+function careerAdd(won,ci){const c=careerGet();if(won){c.w++;c.s++;c.b=Math.max(c.b,c.s)}else{c.l++;c.s=0}
+  const id=ROSTER[ci]?ROSTER[ci].id:"?",e=c.ch[id]||(c.ch[id]=[0,0]);e[won?0:1]++;try{localStorage.setItem("fk_online",JSON.stringify(c))}catch(e){}}
+function renderCareer(){const el=$("onStats");if(!el)return;const c=careerGet(),n=c.w+c.l;
+  if(!n){el.innerHTML="<small>Tes stats en ligne</small>Pas encore de combat en ligne : à toi de jouer !";return}
+  let fav=null,fn=0;for(const k in c.ch){const t=c.ch[k][0]+c.ch[k][1];if(t>fn){fn=t;fav=k}}const fd=ROSTER.find(d=>d.id===fav);
+  el.innerHTML="<small>Tes stats en ligne (toutes les sessions)</small><b>"+c.w+"</b> victoire"+(c.w>1?"s":"")+" · <b>"+c.l+"</b> défaite"+(c.l>1?"s":"")+" · "+Math.round(c.w/n*100)+" % · série record <b>"+c.b+"</b>"+(fd?" · perso le plus joué : "+fd.name:"")}
 async function onCreate(){
   audio();SFX.confirm();onMsg("Connexion au serveur…");$("bCreate").disabled=true;
   const mq=await netConnectAll();
@@ -5777,18 +5826,22 @@ function netRenderLobby(){
   const meM=netMem(NET.me);if(meM){NET.ready=!!meM.r}
   const names=id=>{const x=netMem(id);return x?x.n:"?"};
   let ban="";
-  if(L.st==="match"&&L.m)ban="Combat en cours : "+L.m.na+" contre "+L.m.nb;
-  else if(L.st==="cd"&&L.q.length>=2)ban="Prochain combat : "+names(L.q[0])+(L.king===L.q[0]?" ♛":"")+" contre "+names(L.q[1])+" · "+(L.cd||"…")+" s";
-  else if(L.mode==="vs")ban=L.mem.length<2?"En attente d'un adversaire : donne-lui le code !":(L.mem.every(x=>x.r)?"C'est parti !":"Appuyez tous les deux sur Prêt");
-  else ban=L.mem.length<2?"Il faut au moins 2 joueurs : partage le code !":(NET.host?"Appuie sur Lancer quand tout le monde est là":"L'hôte va lancer la partie…");
+  const awy=id=>{const x=netMem(id);return !x||!!x.aw||(!NET.host&&id===L.host&&nowMs()-NET.lastL>NET_AWAY_MS)};
+  const pr=L.q.filter(id=>!awy(id)).slice(0,2),hostGone=!NET.host&&nowMs()-NET.lastL>NET_AWAY_MS;
+  if(hostGone)ban="L'hôte ne répond plus (jeu en arrière-plan ?) : on l'attend…";
+  else if(L.st==="match"&&L.m)ban="Combat en cours : "+L.m.na+" contre "+L.m.nb;
+  else if(L.st==="cd"&&pr.length>=2)ban="Prochain combat : "+names(pr[0])+(L.king===pr[0]?" ♛":"")+" contre "+names(pr[1])+" · "+(L.cd||"…")+" s";
+  else if(pr.length<2)ban=L.mode==="vs"?"En attente d'un adversaire : donne-lui le code !":"Il faut au moins 2 joueurs présents : partage le code !";
+  else{const wait=pr.filter(id=>{const x=netMem(id);return !x.r}).map(names);
+    ban="Prochain combat : "+names(pr[0])+(L.king===pr[0]?" ♛":"")+" contre "+names(pr[1])+" · "+(wait.length===2?"appuyez tous les deux sur Prêt":"on attend que "+wait[0]+" soit prêt")}
   if(L.last&&L.st!=="match"&&L.mode==="vs")ban=(L.last.ff?L.last.wn+" gagne par abandon · ":"Dernier combat : "+L.last.wn+" gagne · ")+ban;
   $("lbBan").textContent=ban;
-  const rk=netRank(L.mem),sig=JSON.stringify([rk,L.king,L.host,L.m&&[L.m.a,L.m.b],NET.ch,NET.name,L.st]);
+  const rk=netRank(L.mem),sig=JSON.stringify([rk,L.king,L.host,L.m&&[L.m.a,L.m.b],NET.ch,NET.name,L.st,L.mem.map(x=>awy(x.id))]);
   if(sig!==lbSig){lbSig=sig;
     const box=$("lbList");box.innerHTML="";
-    rk.forEach((x,i)=>{const r=document.createElement("div");r.className="lbRow"+(x.id===NET.me?" me":"");
+    rk.forEach((x,i)=>{const r=document.createElement("div");const ab=x.id!==NET.me&&awy(x.id);r.className="lbRow"+(x.id===NET.me?" me":"")+(ab?" away":"");
       const tags=[];if(x.id===L.host)tags.push("HÔTE");if(L.mode==="koth"&&L.king===x.id)tags.push("♛ ROI");
-      if(L.m&&(L.m.a===x.id||L.m.b===x.id))tags.push("EN COMBAT");else if(L.mode==="vs"&&x.r)tags.push("PRÊT");
+      if(ab)tags.push("ABSENT");else if(L.m&&(L.m.a===x.id||L.m.b===x.id))tags.push("EN COMBAT");else if(x.r)tags.push("PRÊT");
       r.innerHTML=`<i>${i+1}</i>`;r.appendChild(miniFace(ROSTER[x.c],36));
       const nm=document.createElement("div");nm.className="nm";nm.innerHTML="<b></b><small></small>";nm.firstChild.textContent=x.n+(x.id===NET.me?" (toi)":"");nm.lastChild.textContent=ROSTER[x.c]?ROSTER[x.c].name:"";r.appendChild(nm);
       const sc=document.createElement("div");sc.className="sc";sc.innerHTML=`<b>${x.w}</b> V &nbsp;·&nbsp; ${x.l} D`;r.appendChild(sc);
@@ -5804,14 +5857,12 @@ function netRenderLobby(){
   $("lbName").textContent=NET.name;
   const busy=L.st==="match"||L.st==="cd";
   const bR=$("bReady");
-  if(L.mode==="vs"){bR.style.display="";bR.textContent=NET.ready?"Pas prêt":"Prêt !";bR.classList.toggle("ghost",NET.ready);bR.disabled=L.st!=="lobby"}
-  else{bR.style.display=NET.host&&!busy?"":"none";bR.textContent="Lancer";bR.classList.remove("ghost");bR.disabled=L.mem.length<2}
+  bR.style.display="";bR.textContent=NET.ready?"Pas prêt":"Prêt !";bR.classList.toggle("ghost",NET.ready);bR.disabled=L.st==="match"||hostGone;
   $("bEnd").style.display=NET.host?"":"none";
-  $("lbHint").textContent=L.mode==="koth"?"Le gagnant reste sur le ring, le perdant passe à la fin de la file. Classement au nombre de victoires.":"Revanche autant de fois que vous voulez. Classement au nombre de victoires.";
+  $("lbHint").textContent=(L.mode==="koth"?"Le gagnant reste sur le ring, le perdant passe à la fin de la file.":"Revanche autant de fois que vous voulez.")+" Choisis ton perso puis appuie sur Prêt : le combat part quand les deux sont prêts. Victoires et défaites comptent pour cette session.";
 }
-function onReady(){audio();SFX.confirm();const L=NET.lob;if(!L)return;
-  if(L.mode==="koth"){if(NET.host&&L.mem.length>=2&&L.st==="lobby"){L.st="cd";L.cdEnd=nowMs()+3500;hostBroadcast()}return}
-  NET.ready=!NET.ready;if(NET.host){const mm=netMem(NET.me);if(mm)mm.r=NET.ready?1:0;hostBroadcast();hostMaybeStart()}else{netSend({t:"u",r:NET.ready?1:0});const mm=netMem(NET.me);if(mm)mm.r=NET.ready?1:0;netRenderLobby()}}
+function onReady(){audio();SFX.confirm();const L=NET.lob;if(!L||L.st==="match")return;
+  NET.ready=!NET.ready;if(NET.host){const mm=netMem(NET.me);if(mm)mm.r=NET.ready?1:0;hostBroadcast();hostCheckStart()}else{netSend({t:"u",r:NET.ready?1:0});const mm=netMem(NET.me);if(mm)mm.r=NET.ready?1:0;netRenderLobby()}}
 function netShowRank(lob,why){
   const rk=netRank(lob.mem||[]);const pod=$("podium");pod.innerHTML="";
   [1,0,2].forEach(i=>{const x=rk[i];const c=document.createElement("div");c.className="pd p"+(i+1);if(!x){c.style.visibility="hidden";pod.appendChild(c);return}
@@ -5828,8 +5879,14 @@ function netDrawHUDName(g,f,left,px){
   g.strokeStyle=me?"rgba(12,12,16,.6)":"rgba(255,207,51,.55)";g.lineWidth=1.5;g.stroke();
   g.fillStyle=me?"#0c0c10":"#ffcf33";g.textAlign="center";g.fillText(s,x+tw/2+(left?3:-3),y+17);g.restore();
 }
-function netDrawStall(g){if(!LS||!LS.live||LS.stall<25)return;if(((performance.now()/300)|0)%2)return;g.save();g.font=`800 14px ${FU}`;g.textAlign="center";
-  g.fillStyle="rgba(12,12,16,.75)";g.fillRect(W/2-70,96,140,22);g.fillStyle="#ffcf33";g.fillText("CONNEXION…",W/2,112);g.restore()}
+function netDrawStall(g){if(!LS||!LS.live||LS.stall<25||!LS.stallT)return;const st=LS.side>=0?(LS.stallAcc||0):nowMs()-LS.stallT;
+  if(st<2500||LS.side<0){if(((performance.now()/300)|0)%2)return;g.save();g.font=`800 14px ${FU}`;g.textAlign="center";
+    g.fillStyle="rgba(12,12,16,.75)";g.fillRect(W/2-70,96,140,22);g.fillStyle="#ffcf33";g.fillText("CONNEXION…",W/2,112);g.restore();return}
+  const m=G.online,opp=LS.side===0?m.b:m.a,on=LS.side===0?m.nb:m.na,aw=!!NET.away[opp],left=Math.max(0,Math.ceil((NET_FF_MS-st)/1000));
+  g.save();g.fillStyle="rgba(12,12,16,.72)";g.fillRect(0,0,W,H);g.textAlign="center";
+  g.font=`44px ${FT}`;g.fillStyle="#ffcf33";g.fillText("EN ATTENTE DE "+String(on||"").toUpperCase(),W/2,H*0.42);
+  g.font=`800 18px ${FU}`;g.fillStyle="#f2ede4";g.fillText(aw?"Il a mis le jeu en arrière-plan.":"Sa connexion ne répond plus.",W/2,H*0.42+38);
+  g.fillStyle="rgba(242,237,228,.7)";g.font=`800 15px ${FU}`;g.fillText("Le combat reprend dès qu'il revient · victoire par abandon dans "+left+" s",W/2,H*0.42+66);g.restore()}
 $("bCreate").onclick=onCreate;$("bJoin").onclick=onJoin;$("bNameOk").onclick=onNameOk;
 $("nameIn").addEventListener("keydown",e=>{if(e.key==="Enter")onNameOk()});$("codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")onJoin()});
 $("codeIn").addEventListener("input",()=>{const v=$("codeIn").value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,4);if(v!==$("codeIn").value)$("codeIn").value=v});
@@ -5844,7 +5901,23 @@ $("bCopy").onclick=()=>{audio();const c=NET.code||"";const ok=()=>{$("bCopy").te
 $("bRankOk").onclick=()=>{SFX.select();musicPlay("menu");show("sMenu")};
 $("bNPres").onclick=()=>{show(null)};
 $("bNPquit").onclick=()=>{if(LS&&LS.live&&LS.side>=0){netForfeit()}else{if(LS)LS.live=false;G=null;LS=null;paused=false;root.classList.remove("spec");netRenderLobby();onPanel("onLobby");musicPlay("select");show("sOnline")}};
-addEventListener("pagehide",()=>{if(NET.mq&&NET.joined){NET.bye=true;netSend(NET.host?{t:"X"}:{t:"Q"})}});
+let NET_HID=0;
+function netHide(){if(!NET_HID)NET_HID=nowMs();if(NET.mq&&NET.joined&&!NET.bye){netSend({t:"aw",a:1});if(NET.host&&NET.lob){const mm=netMem(NET.me);if(mm){mm.aw=1;mm.r=0}NET.ready=false;hostBroadcast()}}}
+function netShow(){const gone=NET_HID?nowMs()-NET_HID:0;NET_HID=0;
+  if(!NET.joined||NET.bye||!NET.code)return;
+  if(gone>NET_EXPIRE_MS){netQuit("Tu étais parti trop longtemps : la session en ligne est terminée.");return}
+  NET.lastL=nowMs();if(LS&&LS.live&&LS.stallT)LS.stallT=nowMs();
+  if(NET.host&&NET.lob){for(const x of NET.lob.mem)x.seen=nowMs();const mm=netMem(NET.me);if(mm)mm.aw=0}
+  if(gone>5000||NET.needReco||!NET.mq||!NET.mq.ok){NET.needReco=false;netReconnect()}else{netSend({t:"aw",a:0});if(NET.host)hostBroadcast()}}
+// reconnexion propre après un passage en arrière-plan (le téléphone coupe souvent les connexions)
+async function netReconnect(){if(NET.reco||!NET.code||NET.bye)return;NET.reco=true;const code=NET.code;
+  try{const old=NET.mq;if(old){old.onclose=null;old.close()}NET.mq=null;
+    const mq=await netConnectAll();if(NET.bye||NET.code!==code){if(mq)mq.close();return}
+    if(mq){netAttach(mq,code);netSend({t:"aw",a:0});netSend({t:"h",rtt:Math.round(NET.rtt),aw:0});if(NET.host)hostBroadcast();if(LS&&LS.live)netFlush()}
+    else setTimeout(netLost,0)}
+  finally{NET.reco=false}}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)netHide();else{netShow();setTimeout(fixView,60)}});
+addEventListener("pagehide",netHide);addEventListener("pageshow",()=>{if(!document.hidden&&NET_HID)netShow()});
 
 window.__game={get LS(){return LS},NET,get G(){return G},get fx(){return fx},newMatch,ROSTER,step,render,P,startCine,pause:v=>{paused=v},ARENAS,getBG,ctx:()=>ctx};
 </script>
