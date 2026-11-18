@@ -257,7 +257,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V3.1</div>
+  <div class="ver">V3.2</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -271,7 +271,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V3.1</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V3.2</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -629,7 +629,7 @@ const SFX_SYN={
 /* bruitages pré-calculés : au premier lancement chaque son est fabriqué une fois, puis simplement rejoué */
 const SFXR={},SFX_VARY={hitL:1,hitH:1,step:1,land:1,whoosh:1,whooshBig:1,block:1,glove:1,splat:1,bonk:1,grab:1,pad:1,dash:1,jump:1};
 const SFX_LONG={ghost:1.5,slam:0.8,scream:1.6,rip:1,choo:1.2,cheer:1.2,slowjam:3.6,crickets:2,roar:1.4,marseillaise:4.2,sadTromb:3,choir:2.2,boom:1.8,ko:2,engine:1.8,fire:1.4};
-const SFX={};for(const k in SFX_SYN)SFX[k]=()=>sfxPlay(k);
+const SFX={};for(const k in SFX_SYN)SFX[k]=()=>{if(!RB_REPLAY)sfxPlay(k)};
 function sfxPlay(k){if(!AC||!OPT.sfx)return;const b=SFXR[k];
   if(b){const s=AC.createBufferSource();s.buffer=b;if(SFX_VARY[k])s.playbackRate.value=0.93+Math.random()*0.14;s.connect(SFXG);s.start(AC.currentTime+0.004)}
   else SFX_SYN[k]()}
@@ -654,6 +654,7 @@ const VOXB={};let VOXG=null;
 function voxDecode(){if(!AC)return;for(const k in VOX_DATA){if(VOXB[k])continue;try{const b=atob(VOX_DATA[k]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   const p=AC.decodeAudioData(u.buffer,x=>{VOXB[k]=x},()=>{});if(p&&p.catch)p.catch(()=>{})}catch(e){}}}
 function vox(k){
+  if(RB_REPLAY)return;
   if(!OPT.voice||!AC||!VOXG)return;const B=VOXB[k];if(!B){voxDecode();return}
   try{if(AC.state==="suspended")AC.resume();const s=AC.createBufferSource();s.buffer=B;s.connect(VOXG);s.start();
     if(MUSG&&OPT.music){const t=AC.currentTime,d=B.duration,G2=MUSG.gain;G2.cancelScheduledValues(t);G2.setValueAtTime(G2.value,t);G2.linearRampToValueAtTime(0.09,t+0.05);G2.setValueAtTime(0.09,t+d*0.8);G2.linearRampToValueAtTime(0.22,t+d+0.3)}}catch(e){}
@@ -670,7 +671,7 @@ function voxVS(a,b){
     if(MUSG&&OPT.music){const t0=AC.currentTime,G2=MUSG.gain;G2.cancelScheduledValues(t0);G2.setValueAtTime(G2.value,t0);G2.linearRampToValueAtTime(0.1,t0+0.2);G2.setValueAtTime(0.1,t);G2.linearRampToValueAtTime(0.22,t+0.5)}}catch(e){}
 }
 function introVox(){return (G.p1.wins===1&&G.p2.wins===1)||G.round>5?"final_round":"round_"+G.round}
-function say(txt,pitch=0.7,rate=1){
+function say(txt,pitch=0.7,rate=1){if(RB_REPLAY)return;
   if(!OPT.voice)return;
   try{const u=new SpeechSynthesisUtterance(txt);u.lang="fr-FR";u.pitch=pitch;u.rate=rate;
     const v=speechSynthesis.getVoices().find(v=>/^fr/i.test(v.lang));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}
@@ -977,7 +978,7 @@ function renderHot(id){
   offRender(off).then(b=>{E.buf=b}).catch(()=>{});return E;
 }
 function musPrefetch(id){if(!AC||!TRACKS[id])return;const T=TRACKS[id];renderSec(id,T.order[0]);if(T.order[1])renderSec(id,T.order[1]);renderHot(id)}
-function musicPlay(id){
+function musicPlay(id){if(RB_REPLAY)return;
   if(!AC)return;musInit();const T=TRACKS[id];if(!T)return;
   if(MUS.id===id&&!T.once)return;
   musicStop();
@@ -1280,14 +1281,14 @@ class Fighter{
     this.meter=0;this.setState("super");this.superPhase="charge";this.vx=0;this.hitThis=false;
     superFreeze=64;superUser=this;SFX.superOn();
     G.cutin={f:this,t:0,max:64};
-    if(this.d.sup.style==="pan")setTimeout(SFX.sizzle,250);
-    if(this.d.sup.style==="bible")setTimeout(SFX.choir,150);
-    if(this.d.sup.style==="asvp"){SFX.radio();setTimeout(SFX.radio,500)}
-    if(this.d.sup.style==="diaper"){for(let i=0;i<6;i++)setTimeout(SFX.tick,200+i*150)}
-    if(this.d.sup.style==="love"){SFX.ding();setTimeout(SFX.ding,350)}
-    if(this.d.sup.style==="masque"){SFX.ding();setTimeout(SFX.ding,260)}
+    if(this.d.sup.style==="pan")sfxLater(SFX.sizzle,250);
+    if(this.d.sup.style==="bible")sfxLater(SFX.choir,150);
+    if(this.d.sup.style==="asvp"){SFX.radio();sfxLater(SFX.radio,500)}
+    if(this.d.sup.style==="diaper"){for(let i=0;i<6;i++)sfxLater(SFX.tick,200+i*150)}
+    if(this.d.sup.style==="love"){SFX.ding();sfxLater(SFX.ding,350)}
+    if(this.d.sup.style==="masque"){SFX.ding();sfxLater(SFX.ding,260)}
     if(this.d.sup.style==="ghost"){SFX.emf()}
-    if(this.d.sup.style==="intub"){SFX.glove();setTimeout(SFX.glove,260);for(let i=0;i<4;i++)setTimeout(SFX.beep,420+i*180)}
+    if(this.d.sup.style==="intub"){SFX.glove();sfxLater(SFX.glove,260);for(let i=0;i<4;i++)sfxLater(SFX.beep,420+i*180)}
     say(this.d.sup.name,0.8,1.05);
   }
   update(opp){
@@ -1661,7 +1662,7 @@ function cineStep(){
       if(t%5===0)C.parts.push({kind:"heart",x:W*0.47+rnd(-60,60),y:H*0.45,vx:rnd(-1,1),vy:-rnd(1,2.5),life:40,max:40,r:rnd(7,11),gold:true})}
     else if(t<74){ta=P.hiW;td=P.hiW;
       if(t===62)pop(C,W*0.5,H*0.3,"CHECK ?",40,"#f2ede4",12);
-      if(t===68){SFX.ding();setTimeout(SFX.ding,120);pop(C,W*0.33,H*0.3,"!!",64,"#ff3d6e",18);for(let i=0;i<10;i++)C.parts.push({kind:"heart",x:W*0.9,y:H*0.5,vx:rnd(-3,3),vy:rnd(-4,1),life:30,max:30,r:rnd(6,10)})}}
+      if(t===68){SFX.ding();sfxLater(SFX.ding,120);pop(C,W*0.33,H*0.3,"!!",64,"#ff3d6e",18);for(let i=0;i<10;i++)C.parts.push({kind:"heart",x:W*0.9,y:H*0.5,vx:rnd(-3,3),vy:rnd(-4,1),life:30,max:30,r:rnd(6,10)})}}
     else if(t<80){ta=P.dashF;td=P.hiW;if(t===75)SFX.whooshBig()}
     else if(t<100){ta=(t>>2)%2?P.jump:P.dashF;td=P.faceplant}
     else if(t<CINE_FIN){ta=P.bro;td=P.kneel;
@@ -1744,7 +1745,7 @@ function tryDismember(a,d){
   const x=d.x+d.dir*(leg?4:7)*h,y=d.y-(leg?74:150)*h;
   fx.limbs.push({kind:d.lost,x,y,vx:dir*(4.5+r2*4),vy:-(9+r1*40),rot:0,vr:dir*(0.26+r2*0.2),col:d.col,d:d.d,flip:d.dir,b:0,rest:false,t:0});
   slowmo=Math.max(slowmo,70);G.zp={x:d.x,y,t:44};G.imp=Math.max(G.imp||0,3);shake=Math.max(shake,22);hitstop=Math.max(hitstop,9);
-  SFX.rip();SFX.splat();SFX.hitH();setTimeout(SFX.splat,140);
+  SFX.rip();SFX.splat();SFX.hitH();sfxLater(SFX.splat,140);
   if(OPT.blood){sprayFX(x,y,dir,2.2);blobsFX(x,y,dir,1.6);arcFX(x,y,dir,1.1);for(let i=0;i<6;i++)decalE(d.x+dir*(10+i*16),GROUND+4+(i%3)*4,9+(i%2)*6,3+(i%3),i%2?"#7e0a10":"#9a0f16")}
   floatTxt(d.x,y-46,"CRAC !","#ff2a2a");
 }
@@ -4146,7 +4147,7 @@ const NPC_COL={skin:"#a9adb3",hair:"#7d8288",top:"#8d9298",top2:"#73787e",collar
 // calque des taches au sol (monde), repeint seulement quand une goutte tombe
 const DCL=document.createElement("canvas"),dcx=DCL.getContext("2d"),DY0=GROUND-40;DCL.width=W*2;DCL.height=(H-DY0)*2;
 function decalClear(){dcx.setTransform(1,0,0,1,0,0);dcx.clearRect(0,0,DCL.width,DCL.height)}
-function decalE(x,y,rx,ry,c,rot){dcx.setTransform(2,0,0,2,0,-DY0*2);dcx.globalAlpha=0.86;dcx.fillStyle=c;dcx.beginPath();dcx.ellipse(x,y,Math.max(0.5,rx),Math.max(0.4,ry),rot||0,0,7);dcx.fill();dcx.globalAlpha=1}
+function decalE(x,y,rx,ry,c,rot){if(RB_REPLAY)return;dcx.setTransform(2,0,0,2,0,-DY0*2);dcx.globalAlpha=0.86;dcx.fillStyle=c;dcx.beginPath();dcx.ellipse(x,y,Math.max(0.5,rx),Math.max(0.4,ry),rot||0,0,7);dcx.fill();dcx.globalAlpha=1}
 function decalDrop(x,y,r,vx,c){const sp=Math.abs(vx),sd=vx>=0?1:-1;
   if(r>=3.3){decalE(x,y,r*2.4,r*0.8,c);for(let i=0;i<3+((Math.random()*4)|0);i++){const a=Math.random()*6.28,d=r*(2.4+Math.random()*2.2);decalE(x+Math.cos(a)*d,y+Math.sin(a)*d*0.3,r*0.35+Math.random()*r*0.3,r*0.15+Math.random()*r*0.1,c)}}
   else if(sp>3.2){decalE(x,y,r*3.4,r*0.55,c);decalE(x+sd*r*4.6,y+0.4,r*0.5,r*0.25,c);decalE(x+sd*r*6.2,y+0.6,r*0.32,r*0.18,c)}
@@ -5393,7 +5394,7 @@ img(CHLOE_FACE);resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="3.0",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="3.2",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 // plusieurs serveurs publics en même temps : chaque message part sur tous ceux qui répondent (si un réseau en bloque un, les autres prennent le relais)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"],["wss://public.cloud.shiftr.io",{u:"public",p:"public"}]];
@@ -5548,7 +5549,7 @@ function hostRemove(id){const L=NET.lob;if(!L||id===NET.me)return;const i=L.mem.
 function hostMaybeStart(){const L=NET.lob;if(L.mode!=="vs"||L.st!=="lobby"||L.mem.length<2)return;if(L.mem.every(x=>x.r))hostStart(L.q[0],L.q[1])}
 function hostStart(aId,bId){const L=NET.lob,A=netMem(aId),B=netMem(bId);if(!A||!B)return;
   const oneWay=((A.id===NET.me?NET.rtt:A.rtt||90)+(B.id===NET.me?NET.rtt:B.rtt||90))/2;
-  const dl=Math.max(3,Math.min(12,Math.ceil((oneWay+20)/16.67)+1));
+  const dl=Math.max(2,Math.min(4,Math.round(oneWay/16.67*0.45)));
   L.mid++;const m={mid:L.mid,a:aId,b:bId,ca:A.c,cb:B.c,na:A.n,nb:B.n,ar:(Math.random()*ARENAS.length)|0,sd:((Math.random()*4294967295)>>>0)||7,dl,mode:L.mode};
   L.st="match";L.m=m;L.cdEnd=0;hostBroadcast();netSend({t:"S",m});netStartMatch(m)}
 function hostResult(mid,ws,ff){const L=NET.lob;if(!L||!L.m||L.m.mid!==mid)return;
@@ -5573,14 +5574,77 @@ function netTick(){
     if(t-NET.lastL>10000)netQuit("L'hôte ne répond plus : le salon est fermé.")}
 }
 
-/* ---------- combat en lockstep ---------- */
+/* ---------- rollback (comme les vrais jeux de combat en ligne) ----------
+   Chaque joueur voit ses propres coups tout de suite (2 à 4 images de délai seulement). Les touches de l'adversaire
+   qui ne sont pas encore arrivées sont devinées (il garde les mêmes touches) ; quand les vraies arrivent et sont
+   différentes, on revient en arrière et on rejoue les dernières images en un éclair, sans son. */
+const RB_MAXR=12;let RB_REPLAY=false;const RB_SKIP=new Set();
+function rbInitSkip(){if(RB_SKIP.size)return;const add=o=>{if(o&&typeof o==="object"&&!RB_SKIP.has(o)){RB_SKIP.add(o);for(const k in o)add(o[k])}};
+  for(const d of ROSTER)add(d);for(const k in P)add(P[k]);for(const a of ARENAS)add(a);add(SUPP);add(CINE_CFG);add(STYLE_COL)}
+function rbClone(v,m){
+  if(v===null||typeof v!=="object")return v;
+  if(RB_SKIP.has(v))return v;
+  const c0=m.get(v);if(c0!==undefined)return c0;
+  if(Array.isArray(v)){const c=new Array(v.length);m.set(v,c);for(let i=0;i<v.length;i++){const x=v[i];c[i]=(x===null||typeof x!=="object")?x:rbClone(x,m)}return c}
+  const pr=Object.getPrototypeOf(v);
+  if(pr!==Object.prototype&&pr!==null&&pr!==Fighter.prototype)return v; // images, canevas… : partagés
+  const c=Object.create(pr);m.set(v,c);for(const k in v){const x=v[k];c[k]=(x===null||typeof x!=="object")?x:rbClone(x,m)}return c}
+function rbSave(){const m=new Map();return {G:rbClone(G,m),fx:rbClone(fx,m),cam:rbClone(cam,m),su:rbClone(superUser,m),v:[TICK,shake,hitstop,slowmo,flash,flashCol,superFreeze,slowAcc,RS]}}
+function rbLoad(S){G=S.G;for(const k in S.fx)fx[k]=S.fx[k];Object.assign(cam,S.cam);superUser=S.su;[TICK,shake,hitstop,slowmo,flash,flashCol,superFreeze,slowAcc,RS]=S.v}
+function sfxLater(f,ms){if(!RB_REPLAY)setTimeout(f,ms)}
+function rbConf(L,s){let c=L.conf[s];while(L.w[s][c+1]!==undefined)c++;L.conf[s]=c;return c}
+// les touches devinées : l'adversaire garde ce qu'il tenait à la dernière image reçue
+function rbPred(L,s){const c=L.conf[s];return c>=0&&L.w[s][c]!==undefined?L.w[s][c]:0}
+function rbSim(L,n){
+  const R=1-L.side,wl=L.w[L.side][n],wr=L.w[R][n]!==undefined?L.w[R][n]:rbPred(L,R);
+  L.snap[n]=rbSave();L.used[n]=wr;L.curW=L.side===0?[wl,wr]:[wr,wl];
+  const MR=Math.random;Math.random=nrand;try{step()}finally{Math.random=MR;if(LS)LS.curW=null}
+  if(LS!==L)return;
+  L.frame=n+1;
+  if(n%120===0&&G)L.hashTmp[n]=netVals();
+  delete L.snap[n-RB_MAXR-6];delete L.used[n-RB_MAXR-6];
+}
+// des vraies touches sont arrivées : on note la plus ancienne image mal devinée
+function rbOnInputs(L,s){
+  if(s===L.side)return;const from=L.conf[s]+1,c=rbConf(L,s);
+  for(let k=from;k<=c&&k<L.frame;k++){if(L.used[k]!==L.w[s][k]){if(L.rbFrom==null||k<L.rbFrom)L.rbFrom=k;break}}
+}
+function rbRewind(L){
+  const k=L.rbFrom;L.rbFrom=null;if(k==null||k>=L.frame)return;
+  const S=L.snap[k];if(!S){L.lost=(L.lost||0)+1;return}
+  const target=L.frame;rbLoad(S);L.frame=k;L.rb++;L.rbDepth=Math.max(L.rbDepth,target-k);
+  RB_REPLAY=true;try{while(L.frame<target&&LS===L&&L.live)rbSim(L,L.frame)}finally{RB_REPLAY=false}
+}
+// les empreintes de contrôle ne partent que pour des images sûres (touches réelles des deux côtés)
+function rbHashes(L){
+  const c=Math.min(L.conf[1-L.side],L.frame-1);
+  for(const f in L.hashTmp){const n=+f;if(n>c)continue;const v=L.hashTmp[n];delete L.hashTmp[n];L.hash[n]=v;
+    if(L.side===0)netSend({t:"k",mid:L.mid,f:n,v});else netCheck(n);delete L.hash[n-1200]}
+}
+function rbStep(){
+  const L=LS;if(!L||!L.live||!G)return false;
+  const n=L.frame,R=1-L.side,f=n+L.delay;
+  if(L.w[L.side][f]===undefined){const w=netSample();L.w[L.side][f]=w;if(L.pendF<0)L.pendF=f;L.pend.push(w)}
+  rbConf(L,R);
+  if(n-L.conf[R]>RB_MAXR){ // l'adversaire a trop de retard : on l'attend (comme avant)
+    netFlush();L.stall++;if(!L.stallT)L.stallT=nowMs();
+    if(nowMs()-L.needT>300){L.needT=nowMs();netSend({t:"N",mid:L.mid,s:R,f:L.conf[R]+1})}
+    return false}
+  L.stall=0;L.stallT=0;
+  rbSim(L,n);
+  if(LS===L&&L.pend.length>=1)netFlush();
+  return true;
+}
+
+/* ---------- combat en lockstep (spectateurs) ---------- */
 function netStartMatch(m){
   if(LS&&LS.mid===m.mid)return;
   clearTimeout(NET.splashT);
   const side=m.a===NET.me?0:m.b===NET.me?1:-1;
   RS=m.sd>>>0||7;hitstop=0;slowmo=0;superFreeze=0;superUser=null;slowAcc=0;flash=0;shake=0;paused=false;
   for(const k in keys)keys[k]=0;NLATCH=0;
-  LS={mid:m.mid,side,delay:m.dl,frame:0,w:[[],[]],last:[m.dl-1,m.dl-1],pend:[],pendF:-1,curW:null,live:true,stall:0,stallT:0,hash:{},rh:{},sent:[],needT:0,desync:0};
+  rbInitSkip();
+  LS={mid:m.mid,side,delay:m.dl,frame:0,w:[[],[]],last:[m.dl-1,m.dl-1],conf:[m.dl-1,m.dl-1],snap:{},used:{},hashTmp:{},rbFrom:null,rb:0,rbDepth:0,advS:null,slowC:0,pend:[],pendF:-1,curW:null,live:true,stall:0,stallT:0,hash:{},rh:{},sent:[],needT:0,desync:0};
   for(let f=0;f<m.dl;f++){LS.w[0][f]=0;LS.w[1][f]=0}
   newMatch(ROSTER[m.ca]||ROSTER[0],ROSTER[m.cb]||ROSTER[0],"online",1,false,m.ar);
   G.online=m;G.mySide=side;G.p2.isCpu=false;G.p1.ib=mkIB();G.p2.ib=mkIB();G.p1.pname=m.na;G.p2.pname=m.nb;
@@ -5591,6 +5655,8 @@ function netOnInputs(m){
   if(!LS||m.mid!==LS.mid||!(m.s===0||m.s===1))return;
   const a=LS.w[m.s];for(let k=0;k<m.w.length;k++){if(a[m.f+k]===undefined)a[m.f+k]=m.w[k]}
   if(m.f+m.w.length-1>LS.last[m.s])LS.last[m.s]=m.f+m.w.length-1;
+  if(LS.side>=0&&m.s!==LS.side){rbOnInputs(LS,m.s);
+    const est=(m.f+m.w.length-1-LS.delay)+NET.rtt/16.67,adv=LS.frame-est;LS.advS=LS.advS==null?adv:LS.advS*0.85+adv*0.15}
 }
 // chaque envoi répète aussi les 6 images précédentes : un message perdu ne bloque pas le combat
 function netFlush(){if(!LS||!LS.pend.length)return;const a=LS.w[LS.side],f0=Math.max(0,LS.pendF-6);netSend({t:"i",mid:LS.mid,s:LS.side,f:f0,w:a.slice(f0,LS.pendF+LS.pend.length)});LS.pend=[];LS.pendF=-1}
@@ -5603,6 +5669,7 @@ function netCheck(f){const a=LS.hash[f],b=LS.rh[f];if(!a||!b||LS.side===0)return
   const fs=[G.p1,G.p2];for(let s=0;s<2;s++){const F=fs[s],o=s*6;F.x+=b[o]-a[o];F.y+=b[o+1]-a[o+1];F.vx=(F.vx||0)+b[o+2]-a[o+2];F.vy=(F.vy||0)+b[o+3]-a[o+3];
     F.hp=Math.max(0,Math.min(1000,F.hp+b[o+4]-a[o+4]));F.meter=Math.max(0,Math.min(100,(F.meter||0)+b[o+5]-a[o+5]))}}
 function netStep(){
+  if(LS&&LS.side>=0)return rbStep();
   const L=LS;if(!L||!L.live||!G)return false;
   const n=L.frame;
   if(L.side>=0){const f=n+L.delay;if(L.w[L.side][f]===undefined){const w=netSample();L.w[L.side][f]=w;if(L.pendF<0)L.pendF=f;L.pend.push(w)}}
@@ -5621,13 +5688,19 @@ function netStep(){
 function netBehind(){const L=LS;if(L.side>=0)return (L.last[1-L.side]-L.delay)-L.frame;return Math.min(L.last[0],L.last[1])-L.frame-3}
 function netLoop(){
   const FR=1000/60;let st=0;
+  if(LS&&LS.side>=0){const L=LS;
+    if(L.rbFrom!=null)rbRewind(L);
+    if(L.advS!=null&&L.advS>1&&acc>=FR&&(++L.slowC%5===0))acc-=FR; // on est en avance : on ralentit un tout petit peu pour rester calés
+    while(acc>=FR&&LS===L&&L.live){if(!netStep()){acc=0;break}acc-=FR;st++}
+    if(LS===L&&L.live)rbHashes(L)}
+  else{
   while(acc>=FR){if(!netStep()){acc=0;break}acc-=FR;st++}
-  if(LS&&LS.live){const b=netBehind();if(b>1&&st<3){netStep();if(b>5)netStep()}}
+  if(LS&&LS.live){const b=netBehind();if(b>1&&st<3){netStep();if(b>5)netStep()}}}
   if(LS&&LS.live&&LS.stallT&&nowMs()-LS.stallT>15000){LS.live=false;netSplash("Connexion perdue","Le combat est annulé.","#f2ede4",true)}
 }
 // appelé par step() quand un joueur a gagné 2 manches
 function netMatchOver(w){
-  if(!LS||!LS.live)return;
+  if(!LS||!LS.live||LS.overDone)return;LS.overDone=true;
   const ws=w.side;if(LS.side>=0){netFlush();netSend({t:"R",mid:LS.mid,win:ws})}
   if(NET.host){const mid=LS.mid;setTimeout(()=>hostResult(mid,ws,false),0)}
   netEndMatch(ws,false);
