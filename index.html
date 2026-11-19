@@ -264,7 +264,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V5.4</div>
+  <div class="ver">V5.5</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -278,7 +278,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V5.4</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V5.5</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -1721,55 +1721,126 @@ const CINE_CFG={lore:{hits:[96,104,112,120],dmg:72},paume:{hits:[98,106,114,121]
 function startCine(a,d){
   a.vx=0;d.vx=0;d.setState("hitstun");d.stun=999;G.cutin=null;
   G.cine={t:0,a,d,st:a.d.sup.style,imp:0,shake:0,parts:[],pops:[],trail:[],pa:Object.assign({},P[SUPP[a.d.sup.style].charge]),pd:Object.assign({},P.hit),ko:false,fly:0,txt:null,retreat:0,lift:0,dodged:{},dx:0,dvx:0};
-  SFX.impact();
+  SFX.impact();G.cine.cardNeed=readT(a.d.sup.name)+10;G.cine.finNeed=readT(a.d.sup.finish||"K.O.")+24;cineScan();
 }
-/* ===== Lisibilité des supers (V5.4) : chaque texte reste affiché le temps de le lire =====
-   readT = temps de lecture en images réelles (60 par seconde). Un seul texte à lire à la fois.
-   Quand un texte apparaît, l'action joue encore quelques pas puis passe au ralenti jusqu'à la fin du temps de lecture.
-   Si le texte suivant arrive trop tôt, il attend son tour (file C.queue) et l'image se fige, sauf pendant un flash. */
-const CINE_SLOW=0.16,CINE_RUN=3,CINE_READ=1;   // CINE_READ : réglage général (1,2 = 20 % de temps de lecture en plus pour toutes les supers ; 0,8 = 20 % en moins)
-function readT(txt,short){const n=txt.replace(/\s/g,"").length;return Math.round(CINE_READ*(short?Math.max(22,Math.min(54,14+1.6*n)):Math.max(30,Math.min(112,20+2.2*n))))}
+/* ===== Rythme des supers (V5.5) — remplace le système de la V5.4 (ralentis brusques, arrêts sur image, saccades) =====
+   1. Au lancement d'une super, on la joue une fois « à blanc » sur une copie de l'état (la copie que le jeu en ligne utilise déjà pour ses retours
+      en arrière) : on connaît d'avance le moment de chaque réplique (C.sched). Rien n'est joué, entendu ni affiché pendant ce passage.
+   2. Vitesse (C.spd) : normale (CINE_V) pendant l'action. Quand une réplique ou un grand titre est à l'écran, la vitesse baisse juste ce qu'il faut
+      pour qu'il soit lu avant la réplique suivante, jamais en dessous de CINE_VMIN, toujours progressivement (CINE_DOWN / CINE_UP par image).
+      Jamais d'arrêt sur image. Les cris (petits titres pendant les coups) ne ralentissent rien.
+   3. Les flashs (impact, appareil photo, lumière qui saute) durent un nombre fixe d'images, quelle que soit la vitesse.
+   4. L'image est dessinée entre deux pas (temps décimal ; poses, envol et particules interpolés) : le mouvement reste fluide, même ralenti.
+   5. Textes : un texte plus récent au même endroit fait disparaître l'ancien tout de suite (plus aucun chevauchement). */
+const CINE_V=0.84,CINE_VMIN=0.25,CINE_DOWN=0.045,CINE_UP=0.03,CINE_READ=1,CINE_SAFE=52;   // CINE_READ : temps de lecture de toutes les supers d'un coup (1,2 = +20 %)
+let CINE_SCAN=null;
+// genre d'un texte : b = bulle (réplique), s = grand titre ou phrase (à lire), c = cri d'un seul mot court (« CRAC », « COUIC ! ») : il ne ralentit rien
+function popKind(txt,size,bubble){if(bubble)return "b";if(size>=56)return "s";const w=txt.replace(/[^A-Za-zÀ-ÿ0-9]+/g," ").trim().split(" ").filter(Boolean);return w.length<=1&&(w[0]||"").length<=8?"c":"s"}
+// temps de lecture en images (60 par seconde)
+function popNeed(txt,kind){const n=txt.replace(/\s/g,"").length;return Math.round(CINE_READ*(kind==="b"?Math.max(30,Math.min(112,20+2.2*n)):kind==="s"?Math.max(20,Math.min(90,14+2*n)):Math.max(16,Math.min(40,10+1.5*n))))}
+function readT(txt){return popNeed(txt,"s")}
+// place approximative d'un texte à l'écran (sans le navigateur : même résultat sur tous les téléphones, indispensable en ligne)
+function popBox(x,y,txt,size,bubble){const n=txt.length;
+  if(bubble){const tw=Math.min(W-24,0.42*size*n+30),bh=size+18,qx=Math.max(tw/2+12,Math.min(W-tw/2-12,x)),qy=Math.max(CINE_SAFE+bh/2+2,Math.min(H-CINE_SAFE-bh/2-20,y));return [qx-tw/2,qy-bh/2,qx+tw/2,qy+bh/2+16]}
+  const tw=0.46*size*n+size/7,fit=Math.min(1,(W-40)/tw),hw=tw*fit/2+10,hh=(size*0.55+tw*0.045)*fit+4,qx=Math.max(hw,Math.min(W-hw,x)),qy=Math.max(CINE_SAFE+hh,Math.min(H-CINE_SAFE-hh,y-20)),w2=hw-10,h2=size*0.42*fit+0.08*w2;
+  return [qx-w2,qy-h2,qx+w2,qy+h2]}
+function txtHit(a,b,f){const ix=Math.min(a[2],b[2])-Math.max(a[0],b[0]),iy=Math.min(a[3],b[3])-Math.max(a[1],b[1]);return ix>0&&iy>0&&ix*iy>(f||0.05)*Math.min((a[2]-a[0])*(a[3]-a[1]),(b[2]-b[0])*(b[3]-b[1]))}
+// ce que devient un texte o quand un texte n apparaît : -1 rien, 0 il disparaît tout de suite, k > 0 il disparaît dans k images
+function popEnd(o,n){if(n.kind==="x")return n.ob&&o.kind!=="b"?-1:0;if(o.txt===n.txt)return -1;if(txtHit(o.bx,n.bx))return 0;if(n.kind==="b"&&o.kind==="b")return 18;if(n.kind==="s"&&o.kind==="c")return 0;return -1}
+// plan de lecture (après le passage à blanc) : pour chaque texte, le moment où le suivant le remplace (échéance) et le temps qu'il reste encore affiché après (crédit)
+function cinePlan(ev){for(let i=0;i<ev.length;i++){const e=ev[i];e.dl=e.t<CINE_FIN?CINE_FIN:CINE_END;e.cr=0;
+  for(let j=i+1;j<ev.length;j++){const n=ev[j];if(n.t<=e.t)continue;if(e.t<CINE_FIN&&n.t>=CINE_FIN)break;const r=popEnd(e,n);if(r>=0){e.dl=n.t;e.cr=Math.round(r*0.6);break}}}return ev}
+// effacer d'un coup les textes (ou seulement les bulles) : noté dans le plan pour que la lecture se termine avant
+function popClear(C,onlyBubbles){if(CINE_SCAN)CINE_SCAN.push({t:C.t,kind:"x",need:0,x:0,y:0,txt:"",size:0,bx:[0,0,W,H],ob:!!onlyBubbles});for(const q of C.pops)if(!onlyBubbles||q.bubble){q.dead=1;q.out=99}}
 function pop(C,x,y,txt,size,col,life,bubble){
   life=life||26;size=size||46;
   if(bubble){size=Math.max(24,size);life=Math.min(44,Math.max(24,16+txt.length*0.8))}else life=Math.max(life,20);
-  // le même texte répété (« ESQUIVE ! », « BIP ») : on le garde affiché, à sa nouvelle place, sans nouvel arrêt
+  const kind=popKind(txt,size,bubble),need=popNeed(txt,kind),bx=popBox(x,y,txt,size,!!bubble);
+  if(CINE_SCAN)CINE_SCAN.push({t:C.t,kind,need,x:Math.round(x),y:Math.round(y),txt,size,bx});
+  // le même texte répété (« BIP… », « ESQUIVE ! ») : on le garde affiché, à sa nouvelle place
   const same=C.pops.find(q=>!q.dead&&q.txt===txt&&q.bubble===!!bubble);
-  if(same){same.x=x;same.y=y;same.life=Math.max(same.life,life);same.need=Math.max(same.need,same.age+16);return}
-  const p={x,y,txt,size,col:col||"#f2ede4",life,max:life,bubble:!!bubble,age:0,st:0,out:0,dead:0,kill:0,need:readT(txt,!bubble&&size<=42)};
-  if(C.pops.some(q=>!q.dead&&q.age<q.need)||(C.queue&&C.queue.length)){(C.queue=C.queue||[]).push(p);return}
-  popShow(C,p)}
-function popShow(C,p){
-  // les textes précédents ont été lus : ils laissent la place. Une bulle ailleurs sur l'écran, ou un petit titre à côté d'une bulle, reste encore un court instant (q.kill, en images réelles)
-  for(const q of C.pops){if(q.dead)continue;const linger=n=>{q.kill=q.kill?Math.min(q.kill,n):n};
-    if(p.bubble){if(q.bubble){if(Math.abs(q.x-p.x)<260&&Math.abs(q.y-p.y)<80)q.dead=1;else linger(16)}else if(q.size>=60)q.dead=1;else linger(10)}
-    else if(p.size>=28){if(!q.bubble&&q.size>=28)q.dead=1;else if(q.bubble){if(p.size>=60)q.dead=1;else linger(10)}}}
-  C.pops.push(p)}
-function cineSpeed(C){
-  if(C.t<36)return Math.min(0.72,36/(readT(C.a.d.sup.name)+6));   // carton du nom de la super
-  if(C.imp>0||C.cam>0||C.flk>0)return 0.84;   // jamais de ralenti pendant un flash (impact, flash d'appareil, lumière qui saute)
-  let slow=false;
-  for(const q of C.pops)if(!q.dead&&q.age<q.need){if(q.st<CINE_RUN)return 0.84;slow=true}
-  if(slow)return CINE_SLOW;
-  if(C.txt)return Math.min(0.75,40/(readT(C.txt.txt)+26));   // titre final
-  return 0.84;
+  if(same){same.x=x;same.y=y;same.bx=bx;same.life=Math.max(same.life,life);same.need=Math.max(same.need,same.age+16);return}
+  const n={x,y,txt,size,col:col||"#f2ede4",life,max:life,bubble:!!bubble,kind,age:0,st:0,out:0,dead:0,kill:0,need,bx,t0:C.t,dl:C.t<CINE_FIN?CINE_FIN:CINE_END,cr:0};
+  for(const q of C.pops){if(q.dead)continue;const r=popEnd(q,n);if(r===0){q.dead=1;q.out=99}else if(r>0)q.kill=q.kill?Math.min(q.kill,r):r}
+  const e=C.sched&&C.sched.find(e=>e.t===C.t&&e.txt===txt);
+  if(e){n.dl=e.dl;n.cr=e.cr}else if(kind!=="c")n.dl=Math.min(n.dl,C.t+26);
+  C.pops.push(n);
+}
+function cineScan(){
+  const C0=G.cine;if(!C0)return;
+  const keep={G,fx:Object.assign({},fx),cam:Object.assign({},cam),su:superUser,v:[TICK,shake,hitstop,slowmo,flash,flashCol,superFreeze,slowAcc,RS]},rr=RB_REPLAY;
+  let ev=null;
+  try{rbLoad(rbSave());RB_REPLAY=true;CINE_SCAN=[];const C=G.cine;for(let n=0;n<400&&G.cine===C&&C.t<CINE_END-1;n++)cineStep();ev=CINE_SCAN}catch(e){ev=null}
+  CINE_SCAN=null;RB_REPLAY=rr;
+  G=keep.G;for(const k of Object.keys(fx))if(!(k in keep.fx))delete fx[k];Object.assign(fx,keep.fx);
+  for(const k of Object.keys(cam))if(!(k in keep.cam))delete cam[k];Object.assign(cam,keep.cam);superUser=keep.su;
+  [TICK,shake,hitstop,slowmo,flash,flashCol,superFreeze,slowAcc,RS]=keep.v;
+  C0.sched=ev?cinePlan(ev):null;
+}
+function cineTarget(C){
+  const tn=C.t+(C.acc||0);let v=CINE_V;
+  const req=(dl,left)=>{if(left<=0)return CINE_V;const d=dl-tn;return d<=0?0:d/left};
+  if(C.t<36)v=Math.min(v,req(36,(C.cardNeed||50)-C.fr));                                       // carton du nom de la super
+  for(const q of C.pops)if(!q.dead&&q.kind!=="c"&&q.age<q.need-q.cr)v=Math.min(v,req(q.dl,q.need-q.cr-q.age));   // répliques et grands titres
+  if(C.txt)v=Math.min(v,req(CINE_END,(C.finNeed||70)-(C.finAge||0)));                            // titre final
+  // freinage anticipé : quand la prochaine réplique apparaît, on roule déjà à la vitesse qu'il lui faut (pas de coup de frein brusque)
+  if(C.sched)for(const e of C.sched){if(e.t<=C.t)continue;if(e.t-tn>30)break;if(e.kind==="c"||e.kind==="x")continue;
+    const left=e.need-e.cr;if(left<=0)continue;const ve=Math.max(CINE_VMIN,Math.min(CINE_V,(e.dl-e.t)/left));
+    v=Math.min(v,Math.sqrt(ve*ve+2*CINE_DOWN*Math.max(0,e.t-tn)))}
+  return Math.max(CINE_VMIN,Math.min(CINE_V,v));
 }
 function cineClock(C){
+  C.fr=(C.fr||0)+1;if(C.txt)C.finAge=(C.finAge||0)+1;
+  if(C.imp>0)C.imp--;if(C.cam>0)C.cam--;if(C.flk>0)C.flk--;   // flashs : en images réelles
   if(C.shake>0)C.shake*=0.86;
   for(const q of C.pops){q.age++;if(q.dead)q.out++;else if((q.life<=0&&q.age>=q.need)||(q.kill>0&&--q.kill===0))q.dead=1}
-  C.pops=C.pops.filter(q=>q.out<=5);
-  if(C.queue&&C.queue.length){
-    if(!C.pops.some(q=>!q.dead&&q.age<q.need))popShow(C,C.queue.shift());
-    else if(C.imp<=0)return;   // arrêt sur image : on finit de lire le texte précédent (jamais pendant un flash)
-  }
-  C.acc=(C.acc||0)+cineSpeed(C);
-  while(C.acc>=1&&G.cine===C){C.acc-=1;cineStep();if(C.queue&&C.queue.length&&C.imp<=0){C.acc=0;break}}
+  C.pops=C.pops.filter(q=>q.out<=6);
+  const tg=cineTarget(C);
+  if(C.spd===undefined)C.spd=tg;else C.spd+=Math.max(-CINE_DOWN,Math.min(CINE_UP,tg-C.spd));
+  C.acc=(C.acc||0)+C.spd;
+  while(C.acc>=1&&G.cine===C){C.acc-=1;cineStep()}
+}
+// dessin entre deux pas : on remplace un instant les poses, l'envol et les particules par leur valeur intermédiaire, puis on remet tout en place
+function cineInterp(C){const f=C.acc||0,S={pa:C.pa,pd:C.pd,pv:null,parts:C.parts.map(p=>[p,p.x,p.y])};
+  if(C.pa0&&C.pd0){C.pa=lerpPose(C.pa0,S.pa,f);C.pd=lerpPose(C.pd0,S.pd,f)}
+  if(C.pv){S.pv=[C.fly,C.lift,C.dx,C.retreat,C.squash];const L=(a,b)=>(typeof a==="number"&&typeof b==="number")?a+(b-a)*f:b;
+    C.fly=L(C.pv[0],C.fly);C.lift=L(C.pv[1],C.lift);C.dx=L(C.pv[2],C.dx);C.retreat=L(C.pv[3],C.retreat);if(C.squash!==undefined)C.squash=L(C.pv[4],C.squash)}
+  const k=1-f;for(const p of C.parts){p.x-=(p.vx||0)*k;p.y-=(p.vy||0)*k}
+  return S}
+function cineInterpEnd(C,S){C.pa=S.pa;C.pd=S.pd;if(S.pv){C.fly=S.pv[0];C.lift=S.pv[1];C.dx=S.pv[2];C.retreat=S.pv[3];if(S.pv[4]!==undefined||C.squash!==undefined)C.squash=S.pv[4]}for(const [p,x,y] of S.parts){p.x=x;p.y=y}}
+function drawCine(g){const C=G.cine;if(!C)return;const S=cineInterp(C);try{drawCine0(g)}finally{cineInterpEnd(C,S)}}
+// textes : boîte occupée (bulle avec sa pointe, ou titre penché) ; un texte plus récent au même endroit cache l'ancien
+function cineTextBox(g,q,SAFE){const k=Math.min(1,q.age/26);
+  if(q.bubble){let fs=q.size;g.font=`800 ${fs}px ${FU}`;while(g.measureText(q.txt).width+30>W-24&&fs>12){fs-=1;g.font=`800 ${fs}px ${FU}`}
+    const tw=g.measureText(q.txt).width+30,bh=fs+18,qx=Math.max(tw/2+12,Math.min(W-tw/2-12,q.x)),qy=Math.max(SAFE+bh/2+2,Math.min(H-SAFE-bh/2-20,q.y));
+    return {fs,tw,bh,qx,qy,x0:qx-tw/2,y0:qy-bh/2,x1:qx+tw/2,y1:qy+bh/2+16}}
+  g.font=`${q.size}px ${FT}`;const sc0=1+Math.max(0,0.3-k)*2,tw=g.measureText(q.txt).width+q.size/7,fit=Math.min(1,(W-40)/(tw*sc0)),hw=tw*sc0*fit/2+10,hh=(q.size*0.55+tw*0.045)*sc0*fit+4;
+  const qx=Math.max(hw,Math.min(W-hw,q.x)),qy=Math.max(SAFE+hh,Math.min(H-SAFE-hh,q.y-k*20)),w2=hw-10,h2=q.size*0.42*sc0*fit+0.08*w2;
+  return {sc0,fit,qx,qy,x0:qx-w2,y0:qy-h2,x1:qx+w2,y1:qy+h2}}
+function cineTexts(g,C,SAFE){
+  const L=C.pops,shown=[],hit=(a,b)=>{const ix=Math.min(a.x1,b.x1)-Math.max(a.x0,b.x0),iy=Math.min(a.y1,b.y1)-Math.max(a.y0,b.y0);return ix>0&&iy>0&&ix*iy>0.15*Math.min((a.x1-a.x0)*(a.y1-a.y0),(b.x1-b.x0)*(b.y1-b.y0))};
+  g.save();C.finBB=null;
+  if(C.txt){const ct=C.txt.t-1+(C.acc||0);if(ct>2){g.font=`104px ${FT}`;const fw=Math.min(1,(W-60)/(g.measureText(C.txt.txt).width+20)),tw2=g.measureText(C.txt.txt).width,hh2=(104*0.55+tw2*0.04)*fw,ty=Math.max(H*0.24,SAFE+hh2+8),
+    w2=tw2*fw/2,h2=104*0.42*fw+0.07*w2;C.finBB={x0:W/2-w2,y0:ty-h2,x1:W/2+w2,y1:ty+h2};shown.push(C.finBB)}}   // place du titre une fois posé (pas pendant son arrivée en gros plan)
+  for(let i=L.length-1;i>=0;i--){const q=L[i],al=q.dead?Math.max(0,1-q.out/6):1;q.bb=null;q.ra=0;if(al<=0||q.hid)continue;
+    const B=cineTextBox(g,q,SAFE);if(shown.some(b=>(b!==C.finBB||q.t0<CINE_FIN)&&hit(b,B))){q.hid=1;continue}   // filet de sécurité : un texte caché par un plus récent ne revient pas
+    q.bb=B;q.ra=al*(q.bubble?Math.min(1,q.age/3):1);if(al>=0.3)shown.push(B)}
+  g.restore();
+  for(const q of L){if(!q.ra)continue;const B=q.bb;
+    if(q.bubble){g.save();g.globalAlpha=q.ra;g.font=`800 ${B.fs}px ${FU}`;
+      g.fillStyle="#fbfbf6";g.strokeStyle="#0c0c10";g.lineWidth=3;g.beginPath();g.roundRect?g.roundRect(B.qx-B.tw/2,B.qy-B.bh/2,B.tw,B.bh,14):g.rect(B.qx-B.tw/2,B.qy-B.bh/2,B.tw,B.bh);g.fill();g.stroke();
+      const tx=Math.max(B.qx-B.tw/2+26,Math.min(B.qx+B.tw/2-26,q.x));
+      g.beginPath();g.moveTo(tx-10,B.qy+B.bh/2-1);g.lineTo(tx-22,B.qy+B.bh/2+18);g.lineTo(tx+6,B.qy+B.bh/2-1);g.fill();g.stroke();
+      g.fillStyle=q.col;g.textAlign="center";g.textBaseline="middle";g.fillText(q.txt,B.qx,B.qy+1);g.restore();continue}
+    g.save();g.globalAlpha=q.ra;g.font=`${q.size}px ${FT}`;g.translate(B.qx,B.qy);g.scale(B.sc0*B.fit,B.sc0*B.fit);g.rotate(-0.08);
+    g.textAlign="center";g.textBaseline="middle";g.lineWidth=q.size/7;g.strokeStyle="#0c0c10";g.strokeText(q.txt,0,0);g.fillStyle=q.col;g.fillText(q.txt,0,0);g.restore()}
 }
 const CROWD=[0,1,2,3,4,5];
 function crowdX(i,t){return W*1.08+i*125-(t-36)*15}
 function jerX(t){return W*0.12+Math.min(1,(t-36)/60)*W*0.5}
 function cineStep(){
-  const C=G.cine,a=C.a,d=C.d,sp=SUPP[C.st],st=C.st,t=++C.t,cfg=CINE_CFG[st]||CINE_CFG.default;
-  if(C.imp>0)C.imp--;
+  const C=G.cine;C.pa0=C.pa;C.pd0=C.pd;C.pv=[C.fly,C.lift,C.dx,C.retreat,C.squash];
+  const a=C.a,d=C.d,sp=SUPP[C.st],st=C.st,t=++C.t,cfg=CINE_CFG[st]||CINE_CFG.default;
   let ta=P[sp.charge],td=P.hit;
   const hitPhase=t>=36&&t<CINE_FIN-12;
   if(hitPhase){
@@ -1795,13 +1866,12 @@ function cineStep(){
   if(st==="diaper"&&t>=86&&t<CINE_FIN){ta=P.win;td=P.hurt;C.retreat=Math.min(170,C.retreat+6);
     if(t===100||t===109||t===118){const n=t===100?"3":t===109?"2":"1";pop(C,W*0.62,H*0.3,n,110,"#ff7ab8",18);SFX.tick()}}
   if(st==="ghost"){ // urbex de nuit, caméra en vision nocturne : il prouve que les fantômes existent
-    if(C.cam>0)C.cam--;if(C.flk>0)C.flk--;
     const k=cfg.hits.filter(h=>h<=t).length;
     if(t<72)ta=P.film;else if(t<80)ta=P.shocked;else if(t<CINE_FIN-12)ta=k%2?P.filmPush:P.film;
     td=t<64?P.idle:(t<86?P.shocked:(k%2?P.hit:P.hitAir));
     if(t===38)pop(C,W*0.3,H*0.2,"3 h du mat'. On tourne.",24,"#0c0c10",30,true);
     if(t===46||t===56||t===66)SFX.emf();
-    if(t===52)pop(C,W*0.3,H*0.2,"Esprit, es-tu là ?",24,"#0c0c10",26,true);
+    if(t===54)pop(C,W*0.3,H*0.2,"Esprit, es-tu là ?",24,"#0c0c10",26,true);
     if(t===62){SFX.slam();C.shake=12;C.flk=10}
     if(t===64)pop(C,W*0.7,H*0.2,"T'as entendu ça ?!",26,"#0c0c10",18,true);
     if(t===72){SFX.ghost();SFX.whooshBig();C.shake=18;C.flk=6;pop(C,W*0.47,H*0.76,"IL EST LÀ !!!",66,"#e9fff2",20)}
@@ -1813,14 +1883,14 @@ function cineStep(){
   if(st==="masque"){ // le live, il retire sa tête : c'est Le E… puis le screamer
     if(t<56)ta=P.hiW;else if(t<62)ta=P.unmask;else if(t<72)ta=P.unmaskUp;else if(t<96)ta=P.flex;else ta=P.scare;
     td=t<72?P.idle:P.shocked;
-    if(t===38)pop(C,W*0.3,H*0.13,"Le chat… vous voulez voir ma vraie tête ?",22,"#0c0c10",30,true);
+    if(t===38)pop(C,W*0.3,H*0.13,"Le chat… je montre ma tête ?",24,"#0c0c10",30,true);
     if(t===52)pop(C,W*0.7,H*0.2,"Hein ?",24,"#0c0c10",16,true);
     if(t===62){SFX.rip();C.shake=8}
     if(t===72){SFX.boing();SFX.impact();C.shake=18;pop(C,W*0.5,H*0.18,"SURPRISE !",70,"#ffcf33",18);
       const L=C.mh;if(L)C.parts.push({kind:"maskfly",x:L.x,y:L.y-L.R*0.6,vx:-5,vy:-11,g:0.45,life:60,max:60,rot:L.rot,vr:-0.18,R:L.R,flip:L.flip})}
-    if(t===80)pop(C,W*0.3,H*0.13,"C'était moi depuis le début.",24,"#0c0c10",24,true);
+    if(t===81)pop(C,W*0.3,H*0.13,"C'était moi !",26,"#0c0c10",24,true);
     if(t===88)pop(C,W*0.7,H*0.2,"LE E ?!",28,"#c2185b",14,true);
-    if(t===96){SFX.scream();C.shake=34;C.pops=[];C.parts=C.parts.filter(p=>p.kind!=="maskfly")}
+    if(t===96){SFX.scream();C.shake=34;popClear(C);C.parts=C.parts.filter(p=>p.kind!=="maskfly")}
     if(cfg.hits.includes(t)){C.imp=0;C.shake=26}
   }
   if(st==="kev"){
@@ -1830,23 +1900,23 @@ function cineStep(){
     if(t===76){SFX.shatter();SFX.impact();C.imp=3;C.shake=18;pop(C,W*0.5,H*0.2,"BIG BONHOMME !",88,"#ff4fa3",14);
       for(let i=0;i<26;i++)C.parts.push({kind:"shard",x:W*0.28+rnd(-40,40),y:H*0.5+rnd(-90,90),vx:rnd(-9,9),vy:rnd(-10,3),g:0.4,life:50,max:50,rot:rnd(0,6),vr:rnd(-0.4,0.4),r:rnd(6,14)});
       C.parts.push({kind:"wig",x:W*0.28,y:H*0.3,vx:-5,vy:-9,g:0.45,life:70,max:70,rot:0,vr:-0.25,r:30})}
-    if(t===84)pop(C,W*0.3,H*0.14,"C'était moi, sans-âme.",24,"#0c0c10",20,true);
+    if(t===88)pop(C,W*0.3,H*0.14,"C'était moi, sans-âme.",24,"#0c0c10",20,true);
     if(t===74)SFX.boing();
     if(t===88){SFX.theremin();SFX.choir()}
-    if(CINE_CFG.kev.hits.includes(t)){SFX.ray();const i=CINE_CFG.kev.hits.indexOf(t);pop(C,W*0.62+rnd(-40,40),H*0.32+i*14,["TERRE CREUSE","REPTILIENS","LUNE EN CARTON","ILS NOUS MENTENT"][i],32,"#7cffb2",16);C.rayT=7}
+    if(CINE_CFG.kev.hits.includes(t)){SFX.ray();const i=CINE_CFG.kev.hits.indexOf(t);if(i<3)pop(C,W*0.77+(i%2)*30,H*0.24+i*H*0.11,["TERRE CREUSE","REPTILIENS","ILS NOUS MENTENT"][i],32,"#7cffb2",16);C.rayT=7}
     if(t===CINE_FIN-6)SFX.theremin();
     if(C.rayT>0)C.rayT--;
   }
   if(st==="hype"){ // vide-grenier, costume, puis le train de la hype
-    if(t===37)pop(C,W*0.3,H*0.14,"C'est combien, la console ?",24,"#2a1a5e",30,true);
-    if(t===47)pop(C,W*0.7,H*0.14,"50 balles.",26,"#0c0c10",24,true);
-    if(t===56)pop(C,W*0.3,H*0.14,"2 €. Dernier prix.",26,"#2a1a5e",30,true);
-    if(t===65)pop(C,W*0.7,H*0.14,"... Bon, ok.",26,"#0c0c10",24,true);
-    if(t===70){SFX.cash();pop(C,W*0.5,H*0.3,"BONNE AFFAIRE !",62,"#ffe36e",22);for(let i=0;i<14;i++)C.parts.push({kind:"coin",x:W*0.4,y:H*0.5,vx:rnd(-6,6),vy:rnd(-9,-3),g:0.4,life:40,max:40,rot:0,vr:rnd(-0.3,0.3),r:7})}
+    if(t===37)pop(C,W*0.3,H*0.14,"Combien, la console ?",24,"#2a1a5e",30,true);
+    if(t===49)pop(C,W*0.7,H*0.14,"50 balles.",26,"#0c0c10",24,true);
+    if(t===57)pop(C,W*0.3,H*0.14,"2 €, dernier prix.",26,"#2a1a5e",30,true);
+    if(t===67)pop(C,W*0.7,H*0.14,"... Bon, ok.",26,"#0c0c10",24,true);
+    if(t===70){SFX.cash();for(let i=0;i<14;i++)C.parts.push({kind:"coin",x:W*0.4,y:H*0.5,vx:rnd(-6,6),vy:rnd(-9,-3),g:0.4,life:40,max:40,rot:0,vr:rnd(-0.3,0.3),r:7})}
     if(t===76){SFX.puff();for(let i=0;i<16;i++)C.parts.push({kind:"puff",x:W*0.42+rnd(-40,40),y:H*0.86-140+rnd(-90,90),vx:rnd(-2,2),vy:rnd(-2,0),life:28,max:28,r:rnd(18,32)})}
     if(t===82){SFX.cheer();SFX.bugle();pop(C,W*0.5,H*0.22,"TRAIN DE LA HYPE !!!",66,"#ffe36e",30);say("Train de la hype !",1.1,1.25)}
     if(t===84)SFX.choo();
-    if(t===CINE_CFG.hype.hits[3])pop(C,W*0.66,H*0.28,"NIVEAU MAX !",36,"#ffe36e",16);
+    if(t===CINE_CFG.hype.hits[2])pop(C,W*0.66,H*0.28,"NIVEAU MAX !",36,"#ffe36e",16);
     if(t<70){ta=P.idle;td=t<65?P.idle:P.sulk}
     else if(t<76){ta=P.flex;td=P.sulk}
     else if(t<92){ta=P.hiW;td=P.shocked}
@@ -1857,12 +1927,12 @@ function cineStep(){
   if(st==="rateau"){ // il tente sa chance, se prend un râteau, et pète un câble
     if(t===36)SFX.slowjam();
     if(t===40)pop(C,W*0.3,H*0.14,"Bébé... t'es prête ?",24,"#c2185b",26,true);
-    if(t===54)pop(C,W*0.3,H*0.14,"J'ai mis une bougie à la vanille",22,"#c2185b",22,true);
+    if(t===56)pop(C,W*0.3,H*0.14,"J'ai mis une bougie à la vanille",22,"#c2185b",22,true);
     if(t===64)SFX.kiss();
-    if(t===72){SFX.scratch();pop(C,W*0.68,H*0.14,"Non, c'est bon.",30,"#0c0c10",30,true)}
+    if(t===74){SFX.scratch();pop(C,W*0.68,H*0.14,"Non, c'est bon.",30,"#0c0c10",30,true)}
     if(t===76)SFX.crickets();
     if(t===92){SFX.roar();C.imp=2;C.shake=18;pop(C,W*0.36,H*0.24,"RAGE",104,"#ff3b1f",22)}
-    if(CINE_CFG.rateau.hits.includes(t)){const i=CINE_CFG.rateau.hits.indexOf(t);if(i>0)pop(C,W*0.6+(i%2?-30:30),H*0.3+i*16,["","LA BOUGIE À LA VANILLE !","MÊME PAS UN BISOU !","TROP SEUL !"][i],30,"#ffd0e0",16)}
+    if(CINE_CFG.rateau.hits.includes(t)){const i=CINE_CFG.rateau.hits.indexOf(t);if(i===1||i===3)pop(C,W*(i===1?0.62:0.66),H*(i===1?0.3:0.46),["","LA BOUGIE À LA VANILLE !","","TROP SEUL !"][i],30,"#ffd0e0",16)}
     if(t>=92&&t%3===0)C.parts.push({kind:"puff",steam:true,x:W*0.46+rnd(-14,14),y:H*0.86-300,vx:rnd(-1.5,1.5),vy:-rnd(2,4),life:26,max:26,r:rnd(8,14)});
     if(t<62){ta=P.seduce;td=P.idle}
     else if(t<84){ta=P.smooch;td=t<72?P.idle:P.hiW}
@@ -1901,7 +1971,7 @@ function cineStep(){
       if(t===50)pop(C,W*0.66,H*0.3,"Frérot pour la vie !",26,"#0c0c10",34,true);
       if(t%5===0)C.parts.push({kind:"heart",x:W*0.47+rnd(-60,60),y:H*0.45,vx:rnd(-1,1),vy:-rnd(1,2.5),life:40,max:40,r:rnd(7,11),gold:true})}
     else if(t<74){ta=P.hiW;td=P.hiW;
-      if(t===62)pop(C,W*0.5,H*0.3,"CHECK ?",40,"#f2ede4",12);
+      if(t===62)pop(C,W*0.36,H*0.3,"CHECK ?",40,"#f2ede4",12);
       if(t===68){SFX.ding();sfxLater(SFX.ding,120);pop(C,W*0.33,H*0.3,"!!",64,"#ff3d6e",18);for(let i=0;i<10;i++)C.parts.push({kind:"heart",x:W*0.9,y:H*0.5,vx:rnd(-3,3),vy:rnd(-4,1),life:30,max:30,r:rnd(6,10)})}}
     else if(t<80){ta=P.dashF;td=P.hiW;if(t===75)SFX.whooshBig()}
     else if(t<100){ta=(t>>2)%2?P.jump:P.dashF;td=P.faceplant}
@@ -1914,13 +1984,13 @@ function cineStep(){
   }
   if(t>=CINE_FIN-12&&t<CINE_FIN&&st!=="diaper"&&st!=="love"){ta=P[sp.finW];td=P.hit}
   else if(t>=CINE_FIN){ta=P[sp.fin];td=st==="love"?P.down:P.hitAir}
-  if(st==="love"&&t===CINE_FIN+5)pop(C,W*0.5,H*0.36,"DÉGÂTS ÉMOTIONNELS",40,"#ffcf33",34);
+  if(st==="love"&&t===CINE_FIN+5)pop(C,W*0.5,H*0.66,"DÉGÂTS ÉMOTIONNELS",40,"#ffcf33",34);
   if(t===CINE_FIN){
     applyDamage(a,d,dmgCalc(a,d,150));a.combo++;comboText(a);
     C.imp=7;C.shake=30;cineBurst(C,3);SFX.impact();
     if(st==="pan"){SFX.pan();SFX.fire()}else if(st==="bible"){SFX.book();SFX.choir()}else if(st==="intub"){SFX.hitH();SFX.flat()}
     else if(st==="diaper"){SFX.boom();SFX.fire()}else if(st==="asvp"){SFX.hitH();SFX.radio()}else if(st==="love"){SFX.zap();SFX.ko()}else if(st==="megane"){SFX.hitH();SFX.marseillaise()}else if(st==="kev"){SFX.ray();SFX.impact();SFX.choir()}else if(st==="masque"){SFX.hitH();SFX.boom()}else if(st==="ghost"){C.imp=0;C.cam=6;SFX.camflash();SFX.ghost()}else if(st==="rateau"){SFX.hitH();SFX.clank();SFX.sadTromb()}else if(st==="hype"){SFX.hitH();SFX.choo();SFX.cheer()}else if(st==="paume"){SFX.gong();SFX.slap();SFX.hitH()}else if(st==="lore"){SFX.slam();SFX.glitch();SFX.hitH()}else SFX.hitH();
-    C.txt={txt:a.d.sup.finish||"K.O.",t:0};for(const q of C.pops)if(!q.bubble)q.dead=1;
+    C.txt={txt:a.d.sup.finish||"K.O.",t:0};for(const q of C.pops)if(!q.bubble){q.dead=1;q.out=99}
   }
   if(C.t>CINE_FIN)C.fly+=Math.max(1.5,6-(C.t-CINE_FIN)*0.15);
   if(C.txt)C.txt.t++;
@@ -5837,8 +5907,8 @@ function drawCutin(g){
 }
 
 /* ================= Cinématique ================= */
-function drawCine(g){
-  const C=G.cine,a=C.a,d=C.d,st=C.st,sc=STYLE_COL[st],t=C.t;C.newT=C.drawnT!==t;C.drawnT=t;
+function drawCine0(g){
+  const C=G.cine,a=C.a,d=C.d,st=C.st,sc=STYLE_COL[st],t=Math.max(0,C.t-1+(C.acc||0));C.newT=C.drawnT!==C.t;C.drawnT=C.t;
   g.save();
   if(C.shake>0.5)g.translate((Math.random()-0.5)*C.shake,(Math.random()-0.5)*C.shake);
   const invert=C.imp>0;
@@ -5867,20 +5937,7 @@ function drawCine(g){
     else if(p.kind==="paper"){g.save();g.translate(p.x,p.y);g.rotate(p.rot);g.fillStyle="#fbfbf6";g.fillRect(-10,-13,20,26);g.fillStyle="#3d7bff";g.fillRect(-10,-13,20,6);g.restore()}
     else{g.globalCompositeOperation="lighter";g.fillStyle=p.col;g.beginPath();g.arc(p.x,p.y,p.r,0,7);g.fill();g.globalCompositeOperation="source-over"}}
   g.globalAlpha=1;
-  const SAFE=52; // sous les bandes noires du haut et du bas
-  for(const q of C.pops){const k=Math.min(1,q.age/26),al=q.dead?Math.max(0,1-q.out/5):1;
-    if(q.bubble){g.save();g.globalAlpha=Math.min(1,q.age/3)*al;let fs=q.size;g.font=`800 ${fs}px ${FU}`;
-      while(g.measureText(q.txt).width+30>W-24&&fs>12){fs-=1;g.font=`800 ${fs}px ${FU}`}
-      const tw=g.measureText(q.txt).width+30,bh=fs+18,qx=Math.max(tw/2+12,Math.min(W-tw/2-12,q.x)),qy=Math.max(SAFE+bh/2+2,Math.min(H-SAFE-bh/2-20,q.y));
-      g.fillStyle="#fbfbf6";g.strokeStyle="#0c0c10";g.lineWidth=3;g.beginPath();g.roundRect?g.roundRect(qx-tw/2,qy-bh/2,tw,bh,14):g.rect(qx-tw/2,qy-bh/2,tw,bh);g.fill();g.stroke();
-      const tx=Math.max(qx-tw/2+26,Math.min(qx+tw/2-26,q.x));
-      g.beginPath();g.moveTo(tx-10,qy+bh/2-1);g.lineTo(tx-22,qy+bh/2+18);g.lineTo(tx+6,qy+bh/2-1);g.fill();g.stroke();
-      g.fillStyle=q.col;g.textAlign="center";g.textBaseline="middle";g.fillText(q.txt,qx,qy+1);g.restore();continue}
-    g.save();g.globalAlpha=al;g.font=`${q.size}px ${FT}`;
-    const sc0=1+Math.max(0,0.3-k)*2,tw=g.measureText(q.txt).width+q.size/7,fit=Math.min(1,(W-40)/(tw*sc0)),hw=tw*sc0*fit/2+10,hh=(q.size*0.55+tw*0.045)*sc0*fit+4;
-    const qx=Math.max(hw,Math.min(W-hw,q.x)),qy=Math.max(SAFE+hh,Math.min(H-SAFE-hh,q.y-k*20));
-    g.translate(qx,qy);g.scale(sc0*fit,sc0*fit);g.rotate(-0.08);
-    g.textAlign="center";g.textBaseline="middle";g.lineWidth=q.size/7;g.strokeStyle="#0c0c10";g.strokeText(q.txt,0,0);g.fillStyle=q.col;g.fillText(q.txt,0,0);g.restore()}
+  const SAFE=52;cineTexts(g,C,SAFE);
   // textes de la cinématique
   if(t<36){
     const k=Math.min(1,t/10);g.save();g.translate(W*0.66,H*0.72);g.rotate(-0.08);
@@ -5889,8 +5946,9 @@ function drawCine(g){
     let fs=70;const nm=a.d.sup.name.toUpperCase();g.font=`${fs}px ${FT}`;while(g.measureText(nm).width>W*0.34+200-64&&fs>30){fs-=2;g.font=`${fs}px ${FT}`}
     g.globalAlpha=k;g.fillStyle=sc[1];g.fillText(nm,-196-(1-k)*120,4);g.fillStyle="#f2ede4";g.fillText(nm,-200-(1-k)*120,0);g.restore();
   }
-  if(C.txt&&C.txt.t>2){
-    const k=Math.min(1,(C.txt.t-2)/8),fade=Math.min(1,(CINE_END-t)/12);
+  const ct=C.txt?C.txt.t-1+(C.acc||0):0;
+  if(C.txt&&ct>2){
+    const k=Math.min(1,(ct-2)/8),fade=Math.min(1,(CINE_END-t)/12);
     g.save();g.globalAlpha=fade;g.font=`104px ${FT}`;const fw=Math.min(1,(W-60)/(g.measureText(C.txt.txt).width+20));
     const tw2=g.measureText(C.txt.txt).width,hh2=(104*0.55+tw2*0.04)*fw,ty=Math.max(H*0.24,SAFE+hh2+8);
     const zm=Math.min(1+(1-k)*1.6,Math.max(1,Math.min((W-30)/((tw2+30)*fw),(ty-SAFE)/hh2))); // l'effet « slam » reste dans l'écran
@@ -5920,12 +5978,12 @@ function paumeStep(C,t,cfg,ta,td){
   const k=cfg.hits.filter(h=>h<=t).length;
   if(t===37)pop(C,W*0.7,H*0.14,"Non mais moi je pense que—",24,"#0c0c10",30,true);
   if(t===48){SFX.gong();musDuck(2.4);C.shake=10;pop(C,W*0.36,H*0.26,"STOP.",84,"#ffd257",22);C.parts.push({kind:"ring",x:W*0.39,y:H*0.42,r:14,life:18,max:18,vx:0,vy:0})}
-  if(t===64){SFX.ding();pop(C,W*0.3,H*0.13,"Je m'isole.",24,"#0c0c10",22,true)}
+  if(t===62){SFX.ding();pop(C,W*0.3,H*0.13,"Je m'isole.",24,"#0c0c10",22,true)}
   if(t===66)SFX.whoosh();
-  if(t===76)pop(C,W*0.3,H*0.13,"Je suis content.",24,"#0c0c10",22,true);
-  if(t===86)pop(C,W*0.7,H*0.14,"Mais je v—",26,"#0c0c10",18,true);
-  if(t===94){SFX.gongS();pop(C,W*0.5,H*0.2,"PAUME ANCESTRALE !",60,"#ffd257",20)}
-  if(cfg.hits.includes(t)){const i=cfg.hits.indexOf(t);SFX.slap();SFX.chut();if(i===0||i===3)pop(C,W*0.68+(i%2?34:-34),H*0.3+i*12,["CHUT !","","","SILENCE !"][i],36,"#fff1c2",16)}
+  if(t===73)pop(C,W*0.3,H*0.13,"Je suis content.",24,"#0c0c10",22,true);
+  if(t===84)pop(C,W*0.7,H*0.14,"Mais je v—",26,"#0c0c10",18,true);
+  if(t===96){SFX.gongS();pop(C,W*0.5,H*0.2,"PAUME ANCESTRALE !",60,"#ffd257",20)}
+  if(cfg.hits.includes(t)){const i=cfg.hits.indexOf(t);SFX.slap();SFX.chut();if(i===3)pop(C,W*0.68+(i%2?34:-34),H*0.3+i*12,["CHUT !","","","SILENCE !"][i],36,"#fff1c2",16)}
   if(t===CINE_FIN-12){SFX.whooshBig();C.pops=C.pops.filter(q=>!q.bubble)}
   if(t===CINE_FIN){for(let i=0;i<16;i++)C.parts.push({kind:"puff",x:W*0.68+rnd(-150,150),y:H*0.86+rnd(-8,8),vx:rnd(-4,4),vy:-rnd(0.5,2.5),life:34,max:34,r:rnd(14,26)});
     C.parts.push({kind:"ring",x:W*0.68,y:H*0.86,r:30,life:20,max:20,vx:0,vy:0})}
@@ -5990,28 +6048,28 @@ function paumeScene(g,C,t,gy){
 /* ----- Super de Robtec : « Lore d'horreur » (V5.4) — il filme, retourne la caméra d'un coup : l'image de sa caméra avant apparaît en grand
    (son visage de tout près, en très grand angle) : « Euuh… euuuh… euhh… », « Ouais, ouais, ouais… », « SIMPOOKY ! ».
    Pendant ce temps deux monstres INVENTÉS arrivent derrière l'adversaire ; « COURS !! », les deux frères détalent, les monstres piétinent l'adversaire.
-   Rythme : 8 textes, chacun a son temps de lecture (moteur V5.4) ; durée totale visée 7,5 à 8 s. ----- */
+   Rythme (V5.5) : répliques à t 47 / 62 / 78, fuite à 88 ; chaque texte a son temps de lecture (moteur V5.5, sans arrêt sur image). ----- */
 const LORE_SIMP={d:{h:1.0,b:1.0,headScale:1.3,hair:"short",face:null,outfit:{top:"sweat",hood:true}},col:{skin:"#e6bfa2",hair:"#33291f",top:"#2f3a52",top2:"#222b3f",collar:"#222b3f",pants:"#26262e",shoes:"#d9d9de",belt:null}};
-const LORE_FLIP=44,LORE_RUN=84;
+const LORE_FLIP=44,LORE_RUN=88;
 function loreStep(C,t,cfg,ta,td){
   const k=cfg.hits.filter(h=>h<=t).length;
   if(t===LORE_FLIP){SFX.flip();SFX.rec();C.shake=6}
   if(t===47)pop(C,W*0.27,H*0.13,"Euuh… euuuh… euhh…",28,"#0c0c10",30,true);
-  if(t===58)pop(C,W*0.27,H*0.13,"Ouais, ouais, ouais…",28,"#0c0c10",30,true);
-  if(t===66)SFX.glitch();
-  if(t===72){SFX.scream();C.shake=10;pop(C,W*0.3,H*0.2,"SIMPOOKY !",76,"#ff5a4d",16)}
-  if(t===LORE_RUN){SFX.whooshBig();C.pops=C.pops.filter(q=>!q.bubble);pop(C,W*0.2,H*0.22,"COURS !!",40,"#fff3ea",12);
+  if(t===62)pop(C,W*0.27,H*0.13,"Ouais, ouais, ouais…",28,"#0c0c10",30,true);
+  if(t===70)SFX.glitch();
+  if(t===78){SFX.scream();C.shake=10;pop(C,W*0.3,H*0.2,"SIMPOOKY !",76,"#ff5a4d",16)}
+  if(t===LORE_RUN){SFX.whooshBig();popClear(C,1);pop(C,W*0.2,H*0.22,"COURS !!",40,"#fff3ea",12);
     for(let i=0;i<12;i++)C.parts.push({kind:"puff",x:W*0.27+rnd(-90,90),y:H*0.5+rnd(-80,80),vx:rnd(-5,5),vy:rnd(-4,2),life:18,max:18,r:rnd(8,16)})}
-  if(t===90)SFX.roar();
+  if(t===92)SFX.roar();
   if(cfg.hits.includes(t)){const i=cfg.hits.indexOf(t);if(i%2)SFX.glitch();else SFX.couic();
-    if(i!==2)pop(C,W*0.66+(i%2?44:-44),H*0.3+i*12,["COUIC !","ERREUR !","","ERREUR FATALE !"][i],34,i%2?"#7cf2e0":"#d9b8ff",15)}
-  if(t===CINE_FIN-12){SFX.whooshBig();C.pops=C.pops.filter(q=>!q.bubble)}
+    if(i<3)pop(C,W*0.66+(i%2?44:-44),H*0.3+i*12,["COUIC !","ERREUR !","ERREUR FATALE !"][i],34,i%2?"#7cf2e0":"#d9b8ff",15)}
+  if(t===CINE_FIN-12){SFX.whooshBig();popClear(C,1)}
   if(t===CINE_FIN){for(let i=0;i<18;i++)C.parts.push({kind:"puff",x:W*0.66+rnd(-170,170),y:H*0.86+rnd(-8,8),vx:rnd(-4,4),vy:-rnd(0.5,2.5),life:34,max:34,r:rnd(14,26)});
     C.parts.push({kind:"ring",x:W*0.66,y:H*0.86,r:30,life:20,max:20,vx:0,vy:0})}
   if(t===CINE_FIN+8)SFX.rec();
-  if(t===CINE_FIN+10)pop(C,W*0.2,H*0.42,"Euuh… ouais.",26,"#0c0c10",28,true);
+  if(t===CINE_FIN+10)pop(C,W*0.2,H*0.45,"Euuh… ouais.",26,"#0c0c10",28,true);
   if(t<LORE_FLIP){ta=P.selfieW;if(t>=36)td=P.idle}
-  else if(t<LORE_RUN){ta=P.selfie;td=t<72?P.idle:P.shocked}
+  else if(t<LORE_RUN){ta=P.selfie;td=t<78?P.idle:P.shocked}
   else if(t<CINE_FIN-12){ta=P.dashF;td=t<cfg.hits[0]?P.shocked:(k%2?P.hit:P.hitAir)}
   else ta=P.selfie;
   return [ta,td]}
@@ -6112,14 +6170,14 @@ function loreScene(g,C,t,gy){
   const flee=t>=LORE_RUN&&!fin,rx=flee?ax0-(t-LORE_RUN)*24:ax0;
   if(!fin){g.fillStyle="rgba(20,10,20,.3)";E(rx,gy+6,64,9);actor(g,a,C.pa,rx,gy,flee?-1:1,s,{phoneFlip:t>=LORE_FLIP&&!flee,prop:"phone",ko:flee})}
   // --- Simpooky (silhouette à capuche : on ne montre pas son visage) arrive à gauche de l'image quand son frère crie son nom
-  if(t>=70&&!fin){const sx=t<LORE_RUN?-70+ez((t-70)/4)*148:78-(t-LORE_RUN)*26;if(sx>-140){g.fillStyle="rgba(20,10,20,.3)";E(sx,gy+6,60,9);LASTHEAD=null;actor(g,LORE_SIMP,t<LORE_RUN?P.shocked:P.dashF,sx,gy,t<LORE_RUN?1:-1,s*0.96,{track:true});
+  if(t>=76&&!fin){const sx=t<LORE_RUN?-70+ez((t-76)/4)*148:78-(t-LORE_RUN)*26;if(sx>-140){g.fillStyle="rgba(20,10,20,.3)";E(sx,gy+6,60,9);LASTHEAD=null;actor(g,LORE_SIMP,t<LORE_RUN?P.shocked:P.dashF,sx,gy,t<LORE_RUN?1:-1,s*0.96,{track:true});
       if(LASTHEAD){const B=g.getTransform().inverse().multiply(LASTHEAD.m),sc=Math.hypot(B.a,B.b),hx=B.e,hy=B.f,hr=LASTHEAD.R*sc,fd=t<LORE_RUN?1:-1;
         g.fillStyle="#222b3f";g.strokeStyle="#140e14";g.lineWidth=3;g.beginPath();g.ellipse(hx-fd*hr*0.12,hy-hr*0.06,hr*1.2,hr*1.26,0,0,6.2832);g.fill();g.stroke();
         g.fillStyle="#0c101c";g.beginPath();g.ellipse(hx+fd*hr*0.2,hy+hr*0.06,hr*0.8,hr*0.92,0,0,6.2832);g.fill();
         g.fillStyle="#e9f6ff";g.font=`${Math.round(hr*1.2)}px ${FT}`;g.textAlign="center";g.textBaseline="middle";g.fillText("?",hx+fd*hr*0.2,hy+hr*0.12)}}}
   // --- la caméra retournée : l'image de sa caméra avant, en grand (elle part du téléphone, grossit, tressaute quand il parle)
   if(t>=LORE_FLIP&&t<LORE_RUN+4){const u=ez((t-LORE_FLIP)/6),out=t>=LORE_RUN?ez((t-LORE_RUN)/4):0,ov=t<LORE_FLIP+10?Math.sin((t-LORE_FLIP)/10*Math.PI)*0.1:0,
-      pulse=[47,58,72].reduce((m,q)=>Math.max(m,t>=q&&t<q+5?1-(t-q)/5:0),0),w=(30+226*u)*(1+ov+pulse*0.05)*(1-out*0.5);
+      pulse=[47,62,78].reduce((m,q)=>Math.max(m,t>=q&&t<q+5?1-(t-q)/5:0),0),w=(30+226*u)*(1+ov+pulse*0.05)*(1-out*0.5);
     camTile(g,im,ax0+52+(W*0.29-(ax0+52))*u+Math.sin(t*0.21)*3-out*520,gy-226+(H*0.5-(gy-226))*u+Math.cos(t*0.17)*2.4,w,-0.04+Math.sin(t*0.13)*0.02-out*0.3,1,t)}
   // --- après l'écrasement : l'image de sa caméra revient dans le coin (« Euuh… ouais. »)
   if(t>=CINE_FIN+6){const u=ez((t-CINE_FIN-6)/7);camTile(g,im,-110+u*(W*0.16+110),H*0.68+(1-u)*60,150,-0.22+u*0.14+Math.sin(t*0.15)*0.015,1,t)}
@@ -6503,7 +6561,7 @@ function drawGirl(g,x,y,s,t,lookLeft){
   g.restore();
 }
 function cineScene(g,C){
-  const a=C.a,d=C.d,t=C.t,st=C.st,gy=H*0.86;
+  const a=C.a,d=C.d,t=Math.max(0,C.t-1+(C.acc||0)),st=C.st,gy=H*0.86;
   if(t>=36&&st==="asvp"&&t<96){ // Jérémy esquive une foule d'individus
     const jx=jerX(t),s=1.55;
     actor(g,d,P.idle,W*0.88,gy,-1,s*0.9,{});
@@ -6541,7 +6599,7 @@ function cineScene(g,C){
       drawFighterAt(g,disguised(a.d),DISG_COL,Object.assign({},P.cute,{fB:25+wave}),0,0,1,{noShadow:true,makeup:true});g.restore();
       const dx=W*0.92-Math.min(1,(t-36)/38)*W*0.36,walk=Math.sin(t*0.4);
       actor(g,d,Object.assign({},P.idle,{lF:22+walk*20,lB:-18-walk*20,sF:-28,sB:-12,t:10}),dx,gy,-1,s,{heartEyes:true,dmg});
-      if(C.newT&&t%5===0)C.parts.push({kind:"heart",x:dx-20,y:gy-300,vx:rnd(-1,1),vy:-rnd(1,2),life:36,max:36,r:rnd(7,11)});
+      if(C.newT&&C.t%5===0)C.parts.push({kind:"heart",x:dx-20,y:gy-300,vx:rnd(-1,1),vy:-rnd(1,2),life:36,max:36,r:rnd(7,11)});
       return;
     }
     const ox=t<88?W*0.56+Math.min(1,(t-76)/10)*W*0.1:W*0.66;
@@ -6584,8 +6642,8 @@ function cineScene(g,C){
     const ax=t<66?W*0.24+(t-36)/30*W*0.16:(t<92?W*0.4:W*0.46),dx=W*0.68,fl=t>=CINE_FIN?C.fly:0;
     g.save();g.translate(dx+fl*1.5,gy-fl*0.6);if(t>=CINE_FIN)g.rotate(Math.min(1.2,(t-CINE_FIN)*0.06));g.scale(s,s);
     drawFighterAt(g,d.d,d.col,C.pd,0,0,-1,{noShadow:true,flash:C.imp>0,ko:t>=CINE_FIN,dmg,blush:t>=44&&t<92});g.restore();
-    if(C.newT&&t<72&&t%6===0)C.parts.push({kind:"heart",x:ax+30,y:gy-280,vx:rnd(0.5,2),vy:-rnd(1,2),life:34,max:34,r:rnd(7,11)});
-    if(C.newT&&t===72)C.parts.push({kind:"heart",x:(ax+dx)/2,y:gy-300,vx:0,vy:-0.4,life:40,max:40,r:30,broken:true});
+    if(C.newT&&C.t<72&&C.t%6===0)C.parts.push({kind:"heart",x:ax+30,y:gy-280,vx:rnd(0.5,2),vy:-rnd(1,2),life:34,max:34,r:rnd(7,11)});
+    if(C.newT&&C.t===72)C.parts.push({kind:"heart",x:(ax+dx)/2,y:gy-300,vx:0,vy:-0.4,life:40,max:40,r:30,broken:true});
     // le râteau, bien sûr
     if(t>=CINE_FIN-14&&t<CINE_FIN+18){const k=Math.min(1,Math.max(0,(t-(CINE_FIN-14))/14)),an=-2.4+k*3.1;drawRake(g,ax+10,gy-170*s*0.62,an,s*0.95)}
     actor(g,a,C.pa,ax,gy,1,s,{win:t<72,heartEyes:t>=40&&t<72});
@@ -7531,7 +7589,7 @@ img(CHLOE_FACE);gfxApply();resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="5.4",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="5.5",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 // plusieurs serveurs publics en même temps : chaque message part sur tous ceux qui répondent (si un réseau en bloque un, les autres prennent le relais)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"],["wss://public.cloud.shiftr.io",{u:"public",p:"public"}]];
