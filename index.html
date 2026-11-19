@@ -264,7 +264,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V4.2</div>
+  <div class="ver">V4.3</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -278,7 +278,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.2</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.3</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -5406,10 +5406,13 @@ function postFX(A){
 }
 /* Bandes d'ambiance : sur les écrans plus larges que l'image du jeu, les côtés ne sont plus noirs.
    Ils prolongent le décor en flou (miroir de l'image, très adouci), comme un halo autour de l'écran de jeu. */
+// V4.3 : retour aux côtés noirs (comme avant la V4). L'utilisateur trouvait ce fond flou perturbant : derrière les boutons, le noir est plus net
+// et plus rien ne bouge au bord de l'écran. Tout le reste est gardé tel quel : remettre AMB_SHOW à true suffit pour revoir les bandes.
+const AMB_SHOW=false;
 const AMB={cv:null,cx:null,on:false,gx:0,gy:0,gw:0,gh:0,fresh:false,n:0};
 function ambLayout(){
   if(!AMB.cv){AMB.cv=document.getElementById("amb");if(!AMB.cv)return;AMB.cx=AMB.cv.getContext("2d")}
-  const gw=W*VS,gh=H*VS;AMB.on=(RW-gw>20||RH-gh>20)&&GQ>=1;
+  const gw=W*VS,gh=H*VS;AMB.on=AMB_SHOW&&(RW-gw>20||RH-gh>20)&&GQ>=1;
   if(!AMB.on){AMB.cv.style.display="none";return}
   const s=Math.min(1,112/Math.max(RW,RH));AMB.cv.width=Math.max(8,Math.round(RW*s));AMB.cv.height=Math.max(8,Math.round(RH*s));
   AMB.gx=(RW-gw)/2*s;AMB.gy=(RH-gh)/2*s;AMB.gw=gw*s;AMB.gh=gh*s;AMB.cv.style.display="block";AMB.n=0;
