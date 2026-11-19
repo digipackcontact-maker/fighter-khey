@@ -264,7 +264,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V5.5</div>
+  <div class="ver">V5.6</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -278,7 +278,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V5.5</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V5.6</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -549,6 +549,7 @@ function tryLandscape(){
 let AC=null,MASTER=null,SFXG=null,MUSG=null;
 const OPT={music:true,sfx:true,voice:true,blood:true,bsz:"S",gfx:"auto"};
 try{Object.assign(OPT,JSON.parse(localStorage.getItem("bep_opt")||"{}"))}catch(e){}
+try{if(localStorage.getItem("fk_gfx_auto")!=="1"){OPT.gfx="auto";localStorage.setItem("fk_gfx_auto","1");localStorage.setItem("bep_opt",JSON.stringify(OPT))}}catch(e){}
 function applyOpt(){if(MUSG){try{MUSG.gain.cancelScheduledValues(0)}catch(e){}MUSG.gain.value=OPT.music?0.22:0}if(SFXG)SFXG.gain.value=OPT.sfx?0.78:0;if(!OPT.voice)try{speechSynthesis.cancel()}catch(e){}}
 function audio(){
   if(!AC){try{const AX=window.AudioContext||window.webkitAudioContext;try{AC=new AX({latencyHint:"balanced"})}catch(e){AC=new AX()}
@@ -1766,16 +1767,25 @@ function pop(C,x,y,txt,size,col,life,bubble){
   if(e){n.dl=e.dl;n.cr=e.cr}else if(kind!=="c")n.dl=Math.min(n.dl,C.t+26);
   C.pops.push(n);
 }
-function cineScan(){
-  const C0=G.cine;if(!C0)return;
+// bac à sable : on joue sur une copie de l'état, puis on remet tout exactement en place (rien n'est joué, entendu ni affiché)
+function cineSandbox(fn){
   const keep={G,fx:Object.assign({},fx),cam:Object.assign({},cam),su:superUser,v:[TICK,shake,hitstop,slowmo,flash,flashCol,superFreeze,slowAcc,RS]},rr=RB_REPLAY;
-  let ev=null;
-  try{rbLoad(rbSave());RB_REPLAY=true;CINE_SCAN=[];const C=G.cine;for(let n=0;n<400&&G.cine===C&&C.t<CINE_END-1;n++)cineStep();ev=CINE_SCAN}catch(e){ev=null}
-  CINE_SCAN=null;RB_REPLAY=rr;
+  let out=null;
+  try{rbLoad(rbSave());RB_REPLAY=true;out=fn()}catch(e){out=null}
+  RB_REPLAY=rr;
   G=keep.G;for(const k of Object.keys(fx))if(!(k in keep.fx))delete fx[k];Object.assign(fx,keep.fx);
   for(const k of Object.keys(cam))if(!(k in keep.cam))delete cam[k];Object.assign(cam,keep.cam);superUser=keep.su;
   [TICK,shake,hitstop,slowmo,flash,flashCol,superFreeze,slowAcc,RS]=keep.v;
+  return out}
+function cineScan(){
+  const C0=G.cine;if(!C0)return;
+  const ev=cineSandbox(()=>{CINE_SCAN=[];try{const C=G.cine;for(let n=0;n<400&&G.cine===C&&C.t<CINE_END-1;n++)cineStep();return CINE_SCAN}finally{CINE_SCAN=null}});
   C0.sched=ev?cinePlan(ev):null;
+}
+// au début d'un match : chaque super est jouée une fois à blanc, pour que le téléphone prépare son code (pas d'à-coup au premier lancement)
+function cineWarm(){
+  if(!G||!G.p1||!G.p2)return;
+  for(const s of [0,1])cineSandbox(()=>{const a=s?G.p2:G.p1,d=s?G.p1:G.p2;if(!a.d.sup)return;startCine(a,d);for(let i=0;i<70&&G.cine;i++)cineStep()});
 }
 function cineTarget(C){
   const tn=C.t+(C.acc||0);let v=CINE_V;
@@ -1790,7 +1800,7 @@ function cineTarget(C){
   return Math.max(CINE_VMIN,Math.min(CINE_V,v));
 }
 function cineClock(C){
-  C.fr=(C.fr||0)+1;if(C.txt)C.finAge=(C.finAge||0)+1;
+  C.T0=C.t+(C.acc||0);C.fr=(C.fr||0)+1;if(C.txt)C.finAge=(C.finAge||0)+1;
   if(C.imp>0)C.imp--;if(C.cam>0)C.cam--;if(C.flk>0)C.flk--;   // flashs : en images réelles
   if(C.shake>0)C.shake*=0.86;
   for(const q of C.pops){q.age++;if(q.dead)q.out++;else if((q.life<=0&&q.age>=q.need)||(q.kill>0&&--q.kill===0))q.dead=1}
@@ -1801,11 +1811,16 @@ function cineClock(C){
   while(C.acc>=1&&G.cine===C){C.acc-=1;cineStep()}
 }
 // dessin entre deux pas : on remplace un instant les poses, l'envol et les particules par leur valeur intermédiaire, puis on remet tout en place
-function cineInterp(C){const f=C.acc||0,S={pa:C.pa,pd:C.pd,pv:null,parts:C.parts.map(p=>[p,p.x,p.y])};
-  if(C.pa0&&C.pd0){C.pa=lerpPose(C.pa0,S.pa,f);C.pd=lerpPose(C.pd0,S.pd,f)}
-  if(C.pv){S.pv=[C.fly,C.lift,C.dx,C.retreat,C.squash];const L=(a,b)=>(typeof a==="number"&&typeof b==="number")?a+(b-a)*f:b;
-    C.fly=L(C.pv[0],C.fly);C.lift=L(C.pv[1],C.lift);C.dx=L(C.pv[2],C.dx);C.retreat=L(C.pv[3],C.retreat);if(C.squash!==undefined)C.squash=L(C.pv[4],C.squash)}
-  const k=1-f;for(const p of C.parts){p.x-=(p.vx||0)*k;p.y-=(p.vy||0)*k}
+function cineInterp(C){
+  const T1=C.t+(C.acc||0),T0=C.T0===undefined?T1:C.T0,al=(typeof RALPHA==="number"&&RALPHA<1)?Math.max(0,RALPHA):1,rt=Math.max(0,T0+(T1-T0)*al-1);
+  C.rt=rt;const S={pa:C.pa,pd:C.pd,pv:null,parts:C.parts.map(p=>[p,p.x,p.y])};
+  // l'instant à dessiner est entre le pas C.t-1 et C.t (ou entre C.t-2 et C.t-1 juste après un pas, sur un écran rapide)
+  const early=rt<C.t-1&&C.pa00&&C.pd00,f=Math.max(0,Math.min(1,early?rt-(C.t-2):rt-(C.t-1)));
+  const A=early?[C.pa00,C.pd00,C.pv00]:[C.pa0,C.pd0,C.pv],B=early?[C.pa0,C.pd0,C.pv]:[C.pa,C.pd,null];
+  if(A[0]&&A[1]){C.pa=lerpPose(A[0],B[0],f);C.pd=lerpPose(A[1],B[1],f)}
+  if(A[2]){S.pv=[C.fly,C.lift,C.dx,C.retreat,C.squash];const to=B[2]||S.pv,L=(a,b)=>(typeof a==="number"&&typeof b==="number")?a+(b-a)*f:b;
+    C.fly=L(A[2][0],to[0]);C.lift=L(A[2][1],to[1]);C.dx=L(A[2][2],to[2]);C.retreat=L(A[2][3],to[3]);if(C.squash!==undefined)C.squash=L(A[2][4],to[4])}
+  const k=Math.max(0,Math.min(2,C.t-rt));for(const p of C.parts){p.x-=(p.vx||0)*k;p.y-=(p.vy||0)*k}
   return S}
 function cineInterpEnd(C,S){C.pa=S.pa;C.pd=S.pd;if(S.pv){C.fly=S.pv[0];C.lift=S.pv[1];C.dx=S.pv[2];C.retreat=S.pv[3];if(S.pv[4]!==undefined||C.squash!==undefined)C.squash=S.pv[4]}for(const [p,x,y] of S.parts){p.x=x;p.y=y}}
 function drawCine(g){const C=G.cine;if(!C)return;const S=cineInterp(C);try{drawCine0(g)}finally{cineInterpEnd(C,S)}}
@@ -1820,7 +1835,7 @@ function cineTextBox(g,q,SAFE){const k=Math.min(1,q.age/26);
 function cineTexts(g,C,SAFE){
   const L=C.pops,shown=[],hit=(a,b)=>{const ix=Math.min(a.x1,b.x1)-Math.max(a.x0,b.x0),iy=Math.min(a.y1,b.y1)-Math.max(a.y0,b.y0);return ix>0&&iy>0&&ix*iy>0.15*Math.min((a.x1-a.x0)*(a.y1-a.y0),(b.x1-b.x0)*(b.y1-b.y0))};
   g.save();C.finBB=null;
-  if(C.txt){const ct=C.txt.t-1+(C.acc||0);if(ct>2){g.font=`104px ${FT}`;const fw=Math.min(1,(W-60)/(g.measureText(C.txt.txt).width+20)),tw2=g.measureText(C.txt.txt).width,hh2=(104*0.55+tw2*0.04)*fw,ty=Math.max(H*0.24,SAFE+hh2+8),
+  if(C.txt){const ct=C.txt.t-(C.t-(C.rt!==undefined?C.rt:C.t-1+(C.acc||0)));if(ct>2){g.font=`104px ${FT}`;const fw=Math.min(1,(W-60)/(g.measureText(C.txt.txt).width+20)),tw2=g.measureText(C.txt.txt).width,hh2=(104*0.55+tw2*0.04)*fw,ty=Math.max(H*0.24,SAFE+hh2+8),
     w2=tw2*fw/2,h2=104*0.42*fw+0.07*w2;C.finBB={x0:W/2-w2,y0:ty-h2,x1:W/2+w2,y1:ty+h2};shown.push(C.finBB)}}   // place du titre une fois posé (pas pendant son arrivée en gros plan)
   for(let i=L.length-1;i>=0;i--){const q=L[i],al=q.dead?Math.max(0,1-q.out/6):1;q.bb=null;q.ra=0;if(al<=0||q.hid)continue;
     const B=cineTextBox(g,q,SAFE);if(shown.some(b=>(b!==C.finBB||q.t0<CINE_FIN)&&hit(b,B))){q.hid=1;continue}   // filet de sécurité : un texte caché par un plus récent ne revient pas
@@ -1839,7 +1854,7 @@ const CROWD=[0,1,2,3,4,5];
 function crowdX(i,t){return W*1.08+i*125-(t-36)*15}
 function jerX(t){return W*0.12+Math.min(1,(t-36)/60)*W*0.5}
 function cineStep(){
-  const C=G.cine;C.pa0=C.pa;C.pd0=C.pd;C.pv=[C.fly,C.lift,C.dx,C.retreat,C.squash];
+  const C=G.cine;C.pa00=C.pa0;C.pd00=C.pd0;C.pv00=C.pv;C.pa0=C.pa;C.pd0=C.pd;C.pv=[C.fly,C.lift,C.dx,C.retreat,C.squash];
   const a=C.a,d=C.d,sp=SUPP[C.st],st=C.st,t=++C.t,cfg=CINE_CFG[st]||CINE_CFG.default;
   let ta=P[sp.charge],td=P.hit;
   const hitPhase=t>=36&&t<CINE_FIN-12;
@@ -5908,7 +5923,7 @@ function drawCutin(g){
 
 /* ================= Cinématique ================= */
 function drawCine0(g){
-  const C=G.cine,a=C.a,d=C.d,st=C.st,sc=STYLE_COL[st],t=Math.max(0,C.t-1+(C.acc||0));C.newT=C.drawnT!==C.t;C.drawnT=C.t;
+  const C=G.cine,a=C.a,d=C.d,st=C.st,sc=STYLE_COL[st],t=C.rt!==undefined?C.rt:Math.max(0,C.t-1+(C.acc||0));C.newT=C.drawnT!==C.t;C.drawnT=C.t;
   g.save();
   if(C.shake>0.5)g.translate((Math.random()-0.5)*C.shake,(Math.random()-0.5)*C.shake);
   const invert=C.imp>0;
@@ -5946,7 +5961,7 @@ function drawCine0(g){
     let fs=70;const nm=a.d.sup.name.toUpperCase();g.font=`${fs}px ${FT}`;while(g.measureText(nm).width>W*0.34+200-64&&fs>30){fs-=2;g.font=`${fs}px ${FT}`}
     g.globalAlpha=k;g.fillStyle=sc[1];g.fillText(nm,-196-(1-k)*120,4);g.fillStyle="#f2ede4";g.fillText(nm,-200-(1-k)*120,0);g.restore();
   }
-  const ct=C.txt?C.txt.t-1+(C.acc||0):0;
+  const ct=C.txt?C.txt.t-(C.t-t):0;
   if(C.txt&&ct>2){
     const k=Math.min(1,(ct-2)/8),fade=Math.min(1,(CINE_END-t)/12);
     g.save();g.globalAlpha=fade;g.font=`104px ${FT}`;const fw=Math.min(1,(W-60)/(g.measureText(C.txt.txt).width+20));
@@ -6561,7 +6576,7 @@ function drawGirl(g,x,y,s,t,lookLeft){
   g.restore();
 }
 function cineScene(g,C){
-  const a=C.a,d=C.d,t=Math.max(0,C.t-1+(C.acc||0)),st=C.st,gy=H*0.86;
+  const a=C.a,d=C.d,t=C.rt!==undefined?C.rt:Math.max(0,C.t-1+(C.acc||0)),st=C.st,gy=H*0.86;
   if(t>=36&&st==="asvp"&&t<96){ // Jérémy esquive une foule d'individus
     const jx=jerX(t),s=1.55;
     actor(g,d,P.idle,W*0.88,gy,-1,s*0.9,{});
@@ -6757,6 +6772,7 @@ function newMatch(p1d,p2d,mode,diff,skipVS,arena){
   G.p2.isCpu=true;fx.parts=[];fx.texts=[];fx.projs=[];fx.rings=[];fx.arcs=[];fx.tags=[];fx.stars=[];fx.shields=[];fx.streaks=[];fx.teeth=[];fx.limbs=[];
   G.arena=arena!=null?arena:Math.floor(Math.random()*ARENAS.length);getBG(ARENAS[G.arena]);
   if(skipVS)startRound();else{musicPlay("vs");musPrefetch(G.training?"train":ARENA_MUS[G.arena||0]);G.phase="vs";G.vsT=0;$("ctrl").style.visibility="hidden";G.vsLen=Math.max(G.online?150:170,Math.ceil((vsVoiceLen(p1d,p2d)+0.35)*60));SFX.impact();voxVS(p1d,p2d)}
+  cineWarm();
 }
 function startRound(){
   musicPlay(G.training?"train":ARENA_MUS[G.arena||0]);
@@ -7342,17 +7358,17 @@ function gfxApply(){
 const GOV={probe:0,saved:0,capped:false,tested:false,mn:0,ms:0};
 function gfxGovern(dt){
   if((OPT.gfx||"auto")!=="auto"||GOV.capped)return;
-  if(!(G&&G.phase==="fight"&&!paused&&dt<100&&!G.cine))return;
+  if(!(G&&G.phase==="fight"&&!paused&&dt<100))return;
   FT_AVG+=(dt-FT_AVG)*0.05;
   // écran rapide : si plus d'une image sur huit est manquée, on stabilise. À 100 Hz et plus : une image sur deux (60 i/s réguliers).
   // À 90 Hz : on allège un peu les effets pour tenir la cadence de l'écran.
   if(!HALF&&PACE.top>=70){GOV.mn++;if(dt>(1000/PACE.top)*1.5)GOV.ms++;
     if(GOV.mn>=160){const bad=GOV.ms/GOV.mn>0.125;GOV.ms=GOV.mn=0;
       if(bad){if(PACE.top>=100){HALF=true;HSKIP=false;PACE.n=0;PACE.ok=false;PACE.err=0;FT_AVG=16.7;SLOW=0;return}
-        if(GLV<2){GLV++;SLOW=0;gfxApply();try{localStorage.setItem("fk_glv",GLV)}catch(e){}}}}}
+        if(GLV<2&&!G.cine){GLV++;SLOW=0;gfxApply();try{localStorage.setItem("fk_glv",GLV)}catch(e){}}}}}
   if(GOV.probe>0){if(--GOV.probe===0){if(FT_AVG>27){GLV=GOV.saved;GOV.capped=true;gfxApply()}else{try{localStorage.setItem("fk_glv",GLV)}catch(e){}}SLOW=0}return}
   const lim=PACE.ok&&PACE.hz<58&&PACE.hz>31?PACE.iv*1.23:20.5;
-  if(FT_AVG>lim){if(++SLOW>80&&GLV<GLEVELS.length-1){
+  if(FT_AVG>lim){if(++SLOW>80&&GLV<GLEVELS.length-1&&!G.cine){
       if(PACE.ok&&PACE.hz<=31&&!GOV.tested){GOV.tested=true;GOV.saved=GLV;GLV=Math.min(GLEVELS.length-1,GLV+2);GOV.probe=110;SLOW=0;FT_AVG=33;gfxApply();return}
       GLV++;SLOW=0;FT_AVG=16.7;gfxApply();try{localStorage.setItem("fk_glv",GLV)}catch(e){}}}
   else SLOW=Math.max(0,SLOW-1);
@@ -7589,7 +7605,7 @@ img(CHLOE_FACE);gfxApply();resize();show("sTitle");requestAnimationFrame(loop);
    Transport : MQTT sur WebSocket via des serveurs publics gratuits (aucun compte). Le 1er caractère du code dit quel serveur.
    Combat : « lockstep » avec retard d'entrée — chaque téléphone calcule le combat lui-même avec les touches des deux joueurs,
    au même rythme d'images ; les spectateurs du roi de la colline calculent aussi le combat à partir des mêmes touches. */
-const NET_PV="5.5",NET_FAST=/[?&]fast=1/.test(location.search);
+const NET_PV="5.6",NET_FAST=/[?&]fast=1/.test(location.search);
 // serveurs publics essayés dans l'ordre (le dernier passe par le port 443, utile si un wifi bloque les autres ports)
 // plusieurs serveurs publics en même temps : chaque message part sur tous ceux qui répondent (si un réseau en bloque un, les autres prennent le relais)
 const NETB=[["wss://broker.emqx.io:8084/mqtt"],["wss://broker.hivemq.com:8884/mqtt"],["wss://test.mosquitto.org:8081/mqtt"],["wss://mqtt.eclipseprojects.io:443/mqtt"],["wss://public.cloud.shiftr.io",{u:"public",p:"public"}]];
