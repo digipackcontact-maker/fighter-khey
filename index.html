@@ -264,7 +264,7 @@ canvas#c{position:absolute;display:block}
   <div class="logo"><div class="t1">Fighter</div><div class="t2">Khey</div></div>
   <div class="press">APPUIE SUR L'ÉCRAN</div>
   <div class="ver l">9 COMBATTANTS · 11 À VENIR</div>
-  <div class="ver">V4.3</div>
+  <div class="ver">V4.4</div>
 </div>
 
 <div class="screen" id="sMenu">
@@ -278,7 +278,7 @@ canvas#c{position:absolute;display:block}
     <div class="mi" data-mode="options" data-ic="◐" data-t="Options" data-desc="Musique, bruitages, voix de l'annonceur, sang et blessures, et le juke-box pour écouter toutes les musiques du jeu."><i>06</i>Options</div>
   </div>
   <div class="mright"><div class="mcard" id="mcard"><div class="ic" id="mcIc"></div><div class="ct" id="mcT"></div><div class="cd" id="mcD"></div><div class="tag" id="mcTag">BIENTÔT</div></div></div>
-  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.3</span></div>
+  <div class="mfoot"><span>MENU PRINCIPAL</span><span>V4.4</span></div>
 </div>
 
 <div class="screen" id="sOptions">
@@ -5115,7 +5115,7 @@ function startRound(){
   musicPlay(G.training?"train":ARENA_MUS[G.arena||0]);
   $("ctrl").style.visibility="";
   G.p1.reset();G.p2.reset();G.wvSeed=(Math.random()*5)|0;G.phase="intro";G.introT=0;G.timer=G.online&&NET_FAST?900:3600;G.cine=null;G.cutin=null;G.imp=0;G.zp=null;
-  fx.projs=[];fx.limbs=[];fx.decals=[];decalClear();superFreeze=0;superUser=null;slowmo=0;cam.z=1.4;cam.x=W/2;
+  fx.projs=[];fx.limbs=[];fx.decals=[];decalClear();superFreeze=0;superUser=null;slowmo=0;cam.z=1.16;cam.x=W/2;
   if(!G.training){G.p1.x=150;G.p2.x=810}
   voxStopVS();G.introLen=1;if(!G.training){const vk=introVox();G.introLen=Math.max(80,Math.ceil((VOXEND[vk]+0.18)*60));announce(vk==="final_round"?"FINAL ROUND":"ROUND "+G.round,Math.min(G.introLen,96));SFX.announce();vox(vk)}
 }
@@ -5166,11 +5166,13 @@ function step(){
 function walkIn(f,tx){const dx=tx-f.x;return Math.abs(dx)>6?{left:dx<0?1:0,right:dx>0?1:0}:{}}
 function updateCam(){
   const a=G.p1,b=G.p2;let tx=(a.x+b.x)/2,dist=Math.abs(a.x-b.x);
-  let tz=Math.max(1,Math.min(1.22,1.3-(dist-120)/800)),k=0.08;
-  if(G.phase==="intro")tz=1.18;
-  if(G.zp&&G.zp.t>0){G.zp.t--;tz=1.5;tx=G.zp.x;k=0.25}
-  if(superFreeze>0&&superUser){tz=1.5;tx=superUser.x;k=0.15}
-  if(G.phase==="end"&&G.endT>95&&G.roundWinner){tz=1.38;tx=G.roundWinner.x}
+  // on voit tout le décor ; quand les combattants sont collés, à peine un resserrement (5 % au plus, très lent)
+  let tz=Math.max(1,Math.min(1.05,1.05-(dist-160)/3200)),k=0.05;
+  if(G.phase==="intro")tz=1.1;
+  // zoom sur un coup : seulement pour les grands moments (coup du K.-O., membre arraché : le ralenti est long), plus sur les coups ordinaires
+  if(G.zp&&G.zp.t>0){G.zp.t--;if(slowmo>14){tz=1.34;tx=G.zp.x;k=0.2}}
+  if(superFreeze>0&&superUser){tz=1.34;tx=superUser.x;k=0.14}
+  if(G.phase==="end"){if(G.endT>95&&G.roundWinner){tz=1.3;tx=G.roundWinner.x}else if(tz<1.18){tz=1.18;k=0.1}}
   cam.z+=(tz-cam.z)*k;cam.x+=(tx-cam.x)*(k+0.02);
   const vw=W/cam.z,vh=H/cam.z;
   cam.left=Math.max(0,Math.min(W-vw,cam.x-vw/2));cam.top=(H-vh)*0.9;
